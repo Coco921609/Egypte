@@ -1,0 +1,54 @@
+name: Égypte
+description: "Voyagez en Égypte en toute sérénité. Égypte est l'application indispensable pour simplifier votre séjour."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+  get: ^4.7.3
+  shared_preferences: ^2.5.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: "^0.13.1" # Mettez juste le nom et la version ici
+
+# La configuration se place ici, tout en bas, à la racine du fichier
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/caire/tour.jpg"
+  web:
+    generate: true
+    image_path: "assets/caire/tour.jpg"
+    background_color: "#161616"
+    theme_color: "#D4AF37"
+  windows:
+    generate: true
+    image_path: "assets/caire/tour.jpg"
+    icon_size: 256
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/egpyte.jpg
+    - assets/images/
+    - assets/caire/
+    - assets/alexendrie/
+    - assets/louxor/
+    - assets/assouan/
+    - assets/siwa/
+    - assets/fayoum/
+    - assets/desert/
+    - assets/sharm/
+    - assets/hurgada/
+    - assets/plat/
