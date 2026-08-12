@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert'; // Import essentiel pour la sérialisation JSON des favoris
+import 'package:url_launcher/url_launcher.dart'; // Import pour l'ouverture de Google Maps[cite: 14]
 
 // --- CLASSE DE DÉFILEMENT WEB ---
 class WebScrollBehavior extends MaterialScrollBehavior {
@@ -23,7 +24,7 @@ class HurghadaPage extends StatefulWidget {
 class _HurghadaPageState extends State<HurghadaPage> {
   final ScrollController _scrollController = ScrollController();
 
-  // Clé globale identique partagée avec les autres pages (version française)
+  // Clé globale identique partagée avec les autres pages (version française)[cite: 14]
   List<String> _favorisLieuxJson = [];
   final String _cleStockageLieux = 'lieux_favoris_complets_fr';
 
@@ -32,19 +33,22 @@ class _HurghadaPageState extends State<HurghadaPage> {
       "name": "Safari en quad dans le désert",
       "sub_category": "Activités",
       "photo_url": "assets/hurgada/qaud.jpg",
-      "description": "Vivez une montée d'adrénaline pure en chevauchant un quad à travers les étendues sauvages du désert oriental. Cette aventure vous emmène au cœur de paysages lunaires et de dunes dorées à perte de vue, avec une halte dans un campement bédouin authentique pour savourer un thé traditionnel et découvrir un mode de vie ancestral, loin de l'effervescence touristique."
+      "description": "Vivez une montée d'adrénaline pure en chevauchant un quad à travers les étendues sauvages du désert oriental. Cette aventure vous emmène au cœur de paysages lunaires et de dunes dorées à perte de vue, avec une halte dans un campement bédouin authentique pour savourer un thé traditionnel et découvrir un mode de vie ancestral, loin de l'effervescence touristique.",
+      "mapsQuery": "Quad Desert Safari Hurghada"
     },
     {
       "name": "Plongée à l’île Giftoun",
       "sub_category": "Mer & Nature",
       "photo_url": "assets/hurgada/ile.jpg",
-      "description": "Véritable joyau de la mer Rouge, l'île Giftoun est un sanctuaire marin protégé aux eaux turquoise cristallines. En plongeant dans ses sites renommés, vous découvrirez des jardins de coraux multicolores d'une densité incroyable et une vie sous-marine foisonnante, allant des tortues marines aux bancs de poissons tropicaux exotiques dans un écosystème d'une beauté intacte."
+      "description": "Véritable joyau de la mer Rouge, l'île Giftoun est un sanctuaire marin protégé aux eaux turquoise cristallines. En plongeant dans ses sites renommés, vous découvrirez des jardins de coraux multicolores d'une densité incroyable et une vie sous-marine foisonnante, allant des tortues marines aux bancs de poissons tropicaux exotiques dans un écosystème d'une beauté intacte.",
+      "mapsQuery": "Giftun Island Hurghada"
     },
     {
       "name": "La Marina d’Hurghada",
       "sub_category": "Détente & Vie nocturne",
       "photo_url": "assets/hurgada/marina.webp",
-      "description": "Symbole du renouveau moderne d'Hurghada, la marina est un lieu incontournable pour les amateurs de luxe et de douceur de vivre. Entre les yachts somptueux amarrés au port et les terrasses chics bordant le quai, c'est l'endroit idéal pour flâner en fin de journée, profiter de la brise marine, dîner dans des restaurants gastronomiques ou prolonger la soirée dans une ambiance élégante et animée."
+      "description": "Symbole du renouveau moderne d'Hurghada, la marina est un lieu incontournable pour les amateurs de luxe et de douceur de vivre. Entre les yachts somptueux amarrés au port et les terrasses chics bordant le quai, c'est l'endroit idéal pour flâner en fin de journée, profiter de la brise marine, dîner dans des restaurants gastronomiques ou prolonger la soirée dans une ambiance élégante et animée.",
+      "mapsQuery": "Hurghada Marina"
     },
   ];
 
@@ -62,7 +66,7 @@ class _HurghadaPageState extends State<HurghadaPage> {
     });
   }
 
-  // Ajoute ou retire un lieu de la liste globale au format JSON
+  // Ajoute ou retire un lieu de la liste globale au format JSON[cite: 14]
   Future<void> _toggleFavoriLieu(Map<String, dynamic> item) async {
     final prefs = await SharedPreferences.getInstance();
     final String name = item['name'];
@@ -72,7 +76,7 @@ class _HurghadaPageState extends State<HurghadaPage> {
       if (existe) {
         _favorisLieuxJson.removeWhere((jsonStr) => jsonDecode(jsonStr)['name'] == name);
       } else {
-        // CORRECTION : On injecte explicitement la destination pour home.dart
+        // CORRECTION : On injecte explicitement la destination pour home.dart[cite: 14]
         Map<String, dynamic> itemModifie = Map<String, dynamic>.from(item);
         itemModifie['region'] = "Mer Rouge";
         itemModifie['sub_folder'] = "Hurghada";
@@ -82,6 +86,24 @@ class _HurghadaPageState extends State<HurghadaPage> {
       }
     });
     await prefs.setStringList(_cleStockageLieux, _favorisLieuxJson);
+  }
+
+  // Méthode sécurisée pour ouvrir l'application Google Maps
+  Future<void> _ouvrirMaps(String query) async {
+    final encodedQuery = Uri.encodeComponent(query);
+    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encodedQuery');
+
+    try {
+      bool launched = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        debugPrint('Impossible d\'ouvrir Google Maps');
+      }
+    } catch (e) {
+      debugPrint('Erreur ouverture Maps : $e');
+    }
   }
 
   Color _getCategoryColor(String category) {
@@ -150,11 +172,11 @@ class _HurghadaPageState extends State<HurghadaPage> {
         borderRadius: BorderRadius.circular(20),
         color: const Color(0xFF1E1E1E),
         boxShadow: [
-          // 1. Ombre portée principale très visible
+          // 1. Ombre portée principale très visible[cite: 14]
           BoxShadow(color: Colors.black.withOpacity(0.8), blurRadius: 20, spreadRadius: 4, offset: const Offset(0, 12)),
-          // 2. Halo coloré pour l'effet de reflet
+          // 2. Halo coloré pour l'effet de reflet[cite: 14]
           BoxShadow(color: color.withOpacity(0.3), blurRadius: 30, offset: const Offset(0, 0)),
-          // 3. Liseré lumineux blanc pour le contraste maximal
+          // 3. Liseré lumineux blanc pour le contraste maximal[cite: 14]
           BoxShadow(color: Colors.white.withOpacity(0.12), blurRadius: 0, spreadRadius: 1.5, offset: const Offset(0, 1.5)),
         ],
       ),
@@ -198,6 +220,27 @@ class _HurghadaPageState extends State<HurghadaPage> {
                 Text(item['sub_category'] ?? '', style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 10),
                 Text(item['description'] ?? '', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, height: 1.6)),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _ouvrirMaps(item['mapsQuery'] ?? "${item['name']} Hurghada"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    icon: const Icon(Icons.navigation_outlined, size: 18),
+                    label: const Text(
+                      'Ouvrir dans Google Maps',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                ),
               ],
             ),
           )

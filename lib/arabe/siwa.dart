@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert'; // Import essentiel pour la sérialisation JSON des favoris
 
 // --- CLASSE DE DÉFILEMENT WEB ---
@@ -79,6 +80,17 @@ class _SiwaPageState extends State<SiwaPage> {
       }
     });
     await prefs.setStringList(_cleStockageLieux, _favorisLieuxJson);
+  }
+
+  Future<void> _ouvrirGoogleMaps(String nomLieu) async {
+    final String query = Uri.encodeComponent('$nomLieu، سيوة، مصر');
+    final Uri url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
+
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('Impossible d\'ouvrir la carte pour : $nomLieu -> $e');
+    }
   }
 
   @override
@@ -181,6 +193,31 @@ class _SiwaPageState extends State<SiwaPage> {
                 ),
                 const SizedBox(height: 10),
                 Text(item['description'] ?? '', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, height: 1.6)),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _ouvrirGoogleMaps(lieuNom),
+                    icon: const Icon(Icons.map_rounded, color: Colors.black87),
+                    label: const Text(
+                      "فتح في خريطة جوجل",
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color == Colors.white ? const Color(0xFF57E1AD) : color,
+                      foregroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
               ],
             ),
           )

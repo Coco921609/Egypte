@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert'; // Import essentiel pour sérialiser le lieu en texte JSON
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
 
 // --- 1. CLASSE DE DÉFILEMENT WEB ---
 class WebScrollBehavior extends MaterialScrollBehavior {
@@ -24,7 +25,6 @@ class LeCairePage extends StatefulWidget {
 class _LeCairePageState extends State<LeCairePage> {
   final ScrollController _mainScrollController = ScrollController();
 
-  // Clé globale identique partagée avec home.dart (version arabe)
   List<String> _favorisLieuxJson = [];
   final String _cleStockageLieux = 'lieux_favoris_complets_ar';
 
@@ -104,7 +104,6 @@ class _LeCairePageState extends State<LeCairePage> {
     });
   }
 
-  // Alterne l'état favori et l'enregistre en JSON de manière synchrone pour le rafraîchissement visuel
   Future<void> _toggleFavoriLieu(Map<String, dynamic> item) async {
     final prefs = await SharedPreferences.getInstance();
     final String name = item['name'];
@@ -118,6 +117,17 @@ class _LeCairePageState extends State<LeCairePage> {
       }
     });
     await prefs.setStringList(_cleStockageLieux, _favorisLieuxJson);
+  }
+
+  Future<void> _ouvrirGoogleMaps(String nomLieu) async {
+    final String query = Uri.encodeComponent('$nomLieu، القاهرة، مصر');
+    final Uri url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
+
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('Impossible d\'ouvrir la carte pour : $nomLieu -> $e');
+    }
   }
 
   Color _getCategoryColor(String category) {
@@ -145,7 +155,7 @@ class _LeCairePageState extends State<LeCairePage> {
     }
 
     return Directionality(
-      textDirection: TextDirection.rtl, // FORCE LE SENS DE DROITE À GAUCHE
+      textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: const Color(0xFF101010),
         body: ScrollConfiguration(
@@ -158,7 +168,6 @@ class _LeCairePageState extends State<LeCairePage> {
                 pinned: false,
                 backgroundColor: const Color(0xFF101010),
                 title: const Text("القاهرة", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                // La flèche de retour système s'adapte automatiquement au sens RTL (elle pointera vers la droite)
                 iconTheme: const IconThemeData(color: Colors.white),
                 elevation: 0,
               ),
@@ -183,7 +192,6 @@ class _LeCairePageState extends State<LeCairePage> {
 
   Widget _buildDesignCard(Map<String, dynamic> item, Color color) {
     final String lieuNom = item['name'] ?? '';
-    // Vérifier si le lieu est présent dans la liste JSON globale
     final bool isFav = _favorisLieuxJson.any((jsonStr) => jsonDecode(jsonStr)['name'] == lieuNom);
 
     return Container(
@@ -208,14 +216,19 @@ class _LeCairePageState extends State<LeCairePage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(child: Text(lieuNom, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold))),
+                    Expanded(
+                      child: Text(
+                        lieuNom,
+                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                      ),
+                    ),
                     IconButton(
                       icon: Icon(
                         isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                         color: isFav ? Colors.redAccent : Colors.white54,
                         size: 26,
                       ),
-                      onPressed: () => _toggleFavoriLieu(item), // Passe le Map complet de données au clic
+                      onPressed: () => _toggleFavoriLieu(item),
                     ),
                   ],
                 ),
@@ -223,6 +236,31 @@ class _LeCairePageState extends State<LeCairePage> {
                 Text(item['sub_category'] ?? '', style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 10),
                 Text(item['description'] ?? '', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, height: 1.6)),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _ouvrirGoogleMaps(lieuNom),
+                    icon: const Icon(Icons.map_rounded, color: Colors.black87),
+                    label: const Text(
+                      "فتح في خريطة جوجل",
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color == Colors.white ? const Color(0xFF57E1AD) : color,
+                      foregroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
               ],
             ),
           )

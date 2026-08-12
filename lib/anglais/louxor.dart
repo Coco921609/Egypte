@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart'; // Import pour ouvrir Google Maps
 import 'dart:convert'; // Essential import for JSON serialization of favorites
 
 // --- 1. WEB SCROLL BEHAVIOR CLASS ---
@@ -34,6 +35,7 @@ class _LouxorPageState extends State<LouxorPage> {
       "sub_folder": "Luxor",
       "region": "Historical Cities",
       "photo_url": "assets/louxor/k.jpg",
+      "map_url": "https://maps.google.com/?q=Karnak+Temple+Luxor",
       "description": "The largest religious complex of Antiquity, a true city of temples where every generation of pharaohs left its mark. The hypostyle hall, with its 134 monumental columns, is an architectural feat that leaves the visitor speechless in the face of the vastness of the ancient Egyptians' faith."
     },
     {
@@ -42,6 +44,7 @@ class _LouxorPageState extends State<LouxorPage> {
       "sub_folder": "Luxor",
       "region": "Historical Cities",
       "photo_url": "assets/louxor/temple.jpg",
+      "map_url": "https://maps.google.com/?q=Karnak+Open+Air+Museum+Luxor",
       "description": "Located within the Karnak enclosure, this museum gathers architectural elements carefully reconstructed, such as the White Chapel of Senusret I. It is an essential stop to understand the artistic and technical evolution of Egyptian religious constructions."
     },
     {
@@ -50,6 +53,7 @@ class _LouxorPageState extends State<LouxorPage> {
       "sub_folder": "Luxor",
       "region": "Historical Cities",
       "photo_url": "assets/louxor/l.jpg",
+      "map_url": "https://maps.google.com/?q=Luxor+Temple",
       "description": "Located in the heart of the modern city, this temple was dedicated to the renewal of royal power. Beautifully illuminated at nightfall, it is distinguished by its colossi of Ramesses II, its solitary obelisk, and its mystical atmosphere that seems to defy time and the surrounding urban bustle."
     },
     {
@@ -58,6 +62,7 @@ class _LouxorPageState extends State<LouxorPage> {
       "sub_folder": "Luxor",
       "region": "Historical Cities",
       "photo_url": "assets/louxor/tombe.jpg",
+      "map_url": "https://maps.google.com/?q=Valley+of+the+Kings+Luxor",
       "description": "Immerse yourself in the intimacy of the deceased sovereigns. The royal tombs offer a unique crossing to the afterlife, where every wall is covered with sacred texts and vibrantly colored frescoes, protecting the king and queen on their eternal journey."
     },
     {
@@ -66,6 +71,7 @@ class _LouxorPageState extends State<LouxorPage> {
       "sub_folder": "Luxor",
       "region": "Historical Cities",
       "photo_url": "assets/louxor/rois.jpg",
+      "map_url": "https://maps.google.com/?q=Valley+of+the+Queens+Luxor",
       "description": "The most prestigious site of the Theban necropolis. Between the arid mountains of the west bank, the pharaohs and their wives had their secret dwellings dug, far from prying eyes, to ensure the longevity of their reign in the world of the gods."
     },
     {
@@ -74,6 +80,7 @@ class _LouxorPageState extends State<LouxorPage> {
       "sub_folder": "Luxor",
       "region": "Historical Cities",
       "photo_url": "assets/louxor/me.jpg",
+      "map_url": "https://maps.google.com/?q=Colossi+of+Memnon+Luxor",
       "description": "Two monumental sandstone statues that sit proudly in the plain. Although the mortuary temple of Amenhotep III to which they belonged has disappeared, these colossi remain impressive sentinels, witnesses to the excessive grandeur of the imperial constructions of the era."
     },
     {
@@ -82,6 +89,7 @@ class _LouxorPageState extends State<LouxorPage> {
       "sub_folder": "Luxor",
       "region": "Historical Cities",
       "photo_url": "assets/louxor/habu.jpg",
+      "map_url": "https://maps.google.com/?q=Medinet+Habu+Luxor",
       "description": "A mortuary temple of exceptional richness, where the reliefs recount the victorious battles of Ramesses III against the sea peoples. It is one of the few places where the original painting of the reliefs is still visible, offering a striking contrast between the raw stone and the finesse of the artistic detail."
     },
     {
@@ -90,6 +98,7 @@ class _LouxorPageState extends State<LouxorPage> {
       "sub_folder": "Luxor",
       "region": "Historical Cities",
       "photo_url": "assets/louxor/deir.jpg",
+      "map_url": "https://maps.google.com/?q=Deir+el-Medina+Luxor",
       "description": "The village of the artisans who sculpted and painted the masterpieces of the Valley of the Kings. This place offers a rare and moving look at the daily life of ancient Egyptians, far from royal splendor, with their houses, workshops, and their own decorated family tombs."
     },
     {
@@ -98,6 +107,7 @@ class _LouxorPageState extends State<LouxorPage> {
       "sub_folder": "Luxor",
       "region": "Historical Cities",
       "photo_url": "assets/louxor/m.jpg",
+      "map_url": "https://maps.google.com/?q=Hot+Air+Balloon+Luxor",
       "description": "An unforgettable aerial experience at sunrise. Fly over the Nile and the ancient sites to realize the grandeur of the Theban architectural plan, with the lushness of fertile lands on one side and the silent vastness of the desert plateaus on the other."
     },
     {
@@ -106,6 +116,7 @@ class _LouxorPageState extends State<LouxorPage> {
       "sub_folder": "Luxor",
       "region": "Historical Cities",
       "photo_url": "assets/louxor/b.jpg",
+      "map_url": "https://maps.google.com/?q=Nile+River+Luxor",
       "description": "Navigating the Nile, the life-giving river, is the very soul of Luxor. Whether on a traditional felucca or a cruise ship, the Nile offers a soothing and different perspective on the shores, where agricultural life has continued to follow the rhythm of the seasons for millennia."
     },
   ];
@@ -143,13 +154,26 @@ class _LouxorPageState extends State<LouxorPage> {
     await prefs.setStringList(_storageKeyPlaces, _favoritePlacesJson);
   }
 
+  // Fonction pour ouvrir Google Maps
+  Future<void> _openMap(String mapUrl) async {
+    final Uri uri = Uri.parse(mapUrl);
+    try {
+      bool launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      debugPrint('Error launching map: $e');
+    }
+  }
+
   Color _getCategoryColor(String category) {
     switch (category) {
       case "Monuments": return Colors.amber;
       case "Valley of the Kings & Queens": return Colors.redAccent;
       case "Valley of the Artisans": return Colors.blueAccent;
       case "Activities": return Colors.greenAccent;
-      default: return Colors.white;
+      default: return Colors.tealAccent;
     }
   }
 
@@ -204,6 +228,10 @@ class _LouxorPageState extends State<LouxorPage> {
     final String placeName = item['name'] ?? '';
     final bool isFav = _favoritePlacesJson.any((jsonStr) => jsonDecode(jsonStr)['name'] == placeName);
 
+    // Contraste automatique pour le texte et l'icône du bouton selon la couleur de la catégorie
+    final bool isLightColor = color == Colors.amber || color == Colors.greenAccent || color == Colors.tealAccent || color == Colors.white;
+    final Color textColor = isLightColor ? Colors.black : Colors.white;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
       decoration: BoxDecoration(
@@ -246,6 +274,27 @@ class _LouxorPageState extends State<LouxorPage> {
                 Text(item['sub_category'] ?? '', style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 10),
                 Text(item['description'] ?? '', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, height: 1.6)),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _openMap(item['map_url'] ?? ''),
+                    icon: Icon(Icons.map_outlined, size: 18, color: textColor),
+                    label: Text(
+                      "Open in Google Maps",
+                      style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: textColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
               ],
             ),
           )

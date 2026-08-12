@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert'; // Import essentiel pour la sérialisation JSON des favoris
+import 'package:url_launcher/url_launcher.dart'; // Import pour l'ouverture de Google Maps
 
 // --- CLASSE DE DÉFILEMENT WEB ---
 // Permet d'activer le clic-et-glisser avec la souris comme sur un navigateur web
@@ -34,37 +35,43 @@ class _AlexandriePageState extends State<AlexandriePage> {
       "name": "Citadelle de Qaitbay",
       "sub_category": "Monuments historiques",
       "photo_url": "assets/alexendrie/qai.jpg",
-      "description": "Érigée au XVe siècle sur les vestiges du mythique Phare d'Alexandrie, l'une des sept merveilles du monde antique, cette forteresse défensive en pierre calcaire offre une plongée fascinante dans l'histoire militaire égyptienne. Ses remparts massifs, baignés par les vagues de la Méditerranée, témoignent de la stratégie défensive du sultan Qaitbay face aux menaces ottomanes de l'époque."
+      "description": "Érigée au XVe siècle sur les vestiges du mythique Phare d'Alexandrie, l'une des sept merveilles du monde antique, cette forteresse défensive en pierre calcaire offre une plongée fascinante dans l'histoire militaire égyptienne. Ses remparts massifs, baignés par les vagues de la Méditerranée, témoignent de la stratégie défensive du sultan Qaitbay face aux menaces ottomanes de l'époque.",
+      "mapsQuery": "Citadelle de Qaitbay Alexandrie"
     },
     {
       "name": "La Corniche et le pont Stanley",
       "sub_category": "Activités incontournables",
       "photo_url": "assets/alexendrie/pont.jpg",
-      "description": "Artère vitale et poétique d'Alexandrie, la Corniche s'étire le long du rivage méditerranéen sur plusieurs kilomètres, offrant un panorama unique où se mêlent modernité urbaine et nostalgie historique. Le pont Stanley, avec ses tours caractéristiques, constitue le joyau de cette balade, particulièrement au coucher du soleil lorsque les lumières scintillent sur l'eau, capturant l'essence même de la 'Perle de la Méditerranée'."
+      "description": "Artère vitale et poétique d'Alexandrie, la Corniche s'étire le long du rivage méditerranéen sur plusieurs kilomètres, offrant un panorama unique où se mêlent modernité urbaine et nostalgie historique. Le pont Stanley, avec ses tours caractéristiques, constitue le joyau de cette balade, particulièrement au coucher du soleil lorsque les lumières scintillent sur l'eau, capturant l'essence même de la 'Perle de la Méditerranée'.",
+      "mapsQuery": "Pont Stanley Alexandrie"
     },
     {
       "name": "Palais de Montaza",
       "sub_category": "Lieux historiques",
       "photo_url": "assets/alexendrie/palais.jpeg",
-      "description": "Véritable havre de paix, le complexe royal de Montaza s'étend sur des hectares de jardins luxuriants surplombant la mer. Le palais central, inspiré par un mélange audacieux de styles florentin et turc, servait autrefois de résidence d'été à la famille royale égyptienne. Se promener dans ses allées ombragées, c'est s'immerger dans une époque de faste et de raffinement architectural européen au cœur de l'Égypte."
+      "description": "Véritable havre de paix, le complexe royal de Montaza s'étend sur des hectares de jardins luxuriants surplombant la mer. Le palais central, inspiré par un mélange audacieux de styles florentin et turc, servait autrefois de résidence d'été à la famille royale égyptienne. Se promener dans ses allées ombragées, c'est s'immerger dans une époque de faste et de raffinement architectural européen au cœur de l'Égypte.",
+      "mapsQuery": "Palais de Montaza Alexandrie"
     },
     {
       "name": "Bibliothèque Alexandrina",
       "sub_category": "Culture et Savoir",
       "photo_url": "assets/alexendrie/alexandrina.jpg",
-      "description": "Plus qu'un simple bâtiment, la nouvelle Bibliothèque d'Alexandrie est un monument à la connaissance universelle, conçu pour réincarner l'esprit de l'ancienne bibliothèque antique. Son architecture audacieuse, en forme de disque incliné plongeant dans un bassin d'eau, symbolise un soleil levant sortant de la mer. Elle abrite des millions de livres, des musées spécialisés et des salles de lecture impressionnantes, faisant d'elle un phare culturel mondial."
+      "description": "Plus qu'un simple bâtiment, la nouvelle Bibliothèque d'Alexandrie est un monument à la connaissance universelle, conçu pour réincarner l'esprit de l'ancienne bibliothèque antique. Son architecture audacieuse, en forme de disque incliné plongeant dans un bassin d'eau, symbolise un soleil levant sortant de la mer. Elle abrite des millions de livres, des musées spécialisés et des salles de lecture impressionnantes, faisant d'elle un phare culturel mondial.",
+      "mapsQuery": "Bibliotheca Alexandrina Alexandrie"
     },
     {
       "name": "Amphithéâtre Kom-El-Dick",
       "sub_category": "Monuments historiques",
       "photo_url": "assets/alexendrie/dick.jpg",
-      "description": "Découvert par hasard en 1960, ce petit amphithéâtre romain, remarquablement bien conservé, est le seul de son genre en Égypte. Avec ses gradins de marbre et ses colonnes de granit, il témoigne de la grandeur de la vie sociale et culturelle à l'époque gréco-romaine. Le site, niché au cœur de la ville moderne, offre une fenêtre imprenable sur les habitudes de divertissement des anciens habitants de la cité."
+      "description": "Découvert par hasard en 1960, ce petit amphithéâtre romain, remarquablement bien conservé, est le seul de son genre en Égypte. Avec ses gradins de marbre et ses colonnes de granit, il témoigne de la grandeur de la vie sociale et culturelle à l'époque gréco-romaine. Le site, niché au cœur de la ville moderne, offre une fenêtre imprenable sur les habitudes de divertissement des anciens habitants de la cité.",
+      "mapsQuery": "Kom El Dikka Alexandrie"
     },
     {
       "name": "Colonne de Pompée",
       "sub_category": "Monuments historiques",
       "photo_url": "assets/alexendrie/pompe.jpg",
-      "description": "Se dressant fièrement sur une colline, cette colonne monolithique en granit rouge d'Assouan est un exploit d'ingénierie antique. Haute de près de 27 mètres, elle est le seul vestige encore debout du temple majestueux du Sérapéum. Ce monument imposant, qui domine le quartier populaire de Karmouz, reste un symbole puissant de la longévité historique de la ville et de sa riche mixité culturelle passée."
+      "description": "Se dressant fièrement sur une colline, cette colonne monolithique en granit rouge d'Assouan est un exploit d'ingénierie antique. Haute de près de 27 mètres, elle est le seul vestige encore debout du temple majestueux du Sérapéum. Ce monument imposant, qui domine le quartier populaire de Karmouz, reste un symbole puissant de la longévité historique de la ville et de sa riche mixité culturelle passée.",
+      "mapsQuery": "Colonne de Pompée Alexandrie"
     },
   ];
 
@@ -103,6 +110,24 @@ class _AlexandriePageState extends State<AlexandriePage> {
       }
     });
     await prefs.setStringList(_cleStockageLieux, _favorisLieuxJson);
+  }
+
+  // Méthode sécurisée pour ouvrir l'application Google Maps
+  Future<void> _ouvrirMaps(String query) async {
+    final encodedQuery = Uri.encodeComponent(query);
+    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encodedQuery');
+
+    try {
+      bool launched = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        debugPrint('Impossible d\'ouvrir Google Maps');
+      }
+    } catch (e) {
+      debugPrint('Erreur ouverture Maps : $e');
+    }
   }
 
   Color _getCategoryColor(String category) {
@@ -244,6 +269,27 @@ class _AlexandriePageState extends State<AlexandriePage> {
                 Text(item['sub_category'] ?? '', style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 10),
                 Text(item['description'] ?? '', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, height: 1.6)),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _ouvrirMaps(item['mapsQuery'] ?? "${item['name']} Alexandrie"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    icon: const Icon(Icons.navigation_outlined, size: 18),
+                    label: const Text(
+                      'Ouvrir dans Google Maps',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                ),
               ],
             ),
           )

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart'; // Import pour ouvrir Google Maps
 import 'dart:convert'; // Essential import for JSON serialization of favorites
 
 // --- WEB SCROLL CLASS ---
@@ -34,6 +35,7 @@ class _SharmElSheikhPageState extends State<SharmElSheikhPage> {
       "sub_folder": "Sharm El-Sheikh",
       "region": "Coastal Cities",
       "photo_url": "assets/sharm/mosque.jpeg",
+      "map_url": "https://maps.google.com/?q=Al+Sahaba+Mosque+Sharm+El-Sheikh",
       "description": "Located in the heart of the old town, this mosque is a true architectural masterpiece. Elegantly blending Ottoman, Fatimid, and Mamluk styles, it impresses with its intricate details and imposing silhouette. As night falls, its expertly designed lighting enhances its facades and minarets, creating a mystical and majestic atmosphere that attracts visitors from all over the world."
     },
     {
@@ -42,6 +44,7 @@ class _SharmElSheikhPageState extends State<SharmElSheikhPage> {
       "sub_folder": "Sharm El-Sheikh",
       "region": "Coastal Cities",
       "photo_url": "assets/sharm/eglise.jpg",
+      "map_url": "https://maps.google.com/?q=Coptic+Orthodox+Church+Sharm+El-Sheikh",
       "description": "This church is a jewel of serenity and spiritual beauty. Its vibrantly colored stained glass windows cast fascinating light effects inside, while its detailed wall frescoes accurately tell the rich Egyptian Coptic tradition. It is an essential haven of peace for those wishing to discover the cultural and Christian depth of the region, far from the seaside bustle."
     },
     {
@@ -50,6 +53,7 @@ class _SharmElSheikhPageState extends State<SharmElSheikhPage> {
       "sub_folder": "Sharm El-Sheikh",
       "region": "Coastal Cities",
       "photo_url": "assets/sharm/h.jpg",
+      "map_url": "https://maps.google.com/?q=Hollywood+Sharm+El-Sheikh",
       "description": "A truly spectacular theme park, this unique place transports visitors into a fantastic universe. Between giant replicas of famous statues, choreographed dancing fountains, and enchanting light installations, it is a must-visit destination for families and photography enthusiasts. The atmosphere is constantly lively, offering a fun and totally exotic experience."
     },
     {
@@ -58,6 +62,7 @@ class _SharmElSheikhPageState extends State<SharmElSheikhPage> {
       "sub_folder": "Sharm El-Sheikh",
       "region": "Coastal Cities",
       "photo_url": "assets/sharm/la.jpg",
+      "map_url": "https://maps.google.com/?q=Old+Market+Sharm+El-Sheikh",
       "description": "The Old Market represents the beating and historical heart of Sharm El-Sheikh. It is a living labyrinth of alleys where one discovers the very essence of local culture. Between traditional craft stalls, enchanting spices, and souvenir shops, visitors immerse themselves in an authentic ambiance. It is the perfect place to taste Egyptian gastronomy and interact with merchants in a warm atmosphere."
     },
     {
@@ -66,6 +71,7 @@ class _SharmElSheikhPageState extends State<SharmElSheikhPage> {
       "sub_folder": "Sharm El-Sheikh",
       "region": "Coastal Cities",
       "photo_url": "assets/sharm/saint.webp",
+      "map_url": "https://maps.google.com/?q=Saint+Catherine's+Monastery+Sinai",
       "description": "Nestled at the foot of the magnificent Sinai mountains, this monastery is one of the oldest Christian places of worship still in operation in the world. A World Heritage site, it houses an invaluable collection of Byzantine icons, ancient manuscripts, and the famous 'Burning Bush'. A visit here is a journey through time, imbued with spirituality and a centuries-old history that seems frozen in the desert."
     },
     {
@@ -74,6 +80,7 @@ class _SharmElSheikhPageState extends State<SharmElSheikhPage> {
       "sub_folder": "Sharm El-Sheikh",
       "region": "Coastal Cities",
       "photo_url": "assets/sharm/mont.jpeg",
+      "map_url": "https://maps.google.com/?q=Mount+Sinai+Egypt",
       "description": "A place of immense symbolic power, Mount Sinai is the ultimate destination for pilgrims and hikers. The climb, traditionally done at night to reach the summit before dawn, is a physical challenge rewarded by a spectacular sunrise. Seeing the light ignite the desert peaks from this historic summit offers a moment of rare contemplation and an absolutely unforgettable visual experience."
     },
     {
@@ -82,6 +89,7 @@ class _SharmElSheikhPageState extends State<SharmElSheikhPage> {
       "sub_folder": "Sharm El-Sheikh",
       "region": "Coastal Cities",
       "photo_url": "assets/sharm/Dahab.webp",
+      "map_url": "https://maps.google.com/?q=Dahab+Egypt",
       "description": "A former fishing village that has become a mythical haven for travelers in search of freedom, Dahab possesses a unique bohemian atmosphere. World-renowned for its relaxed pace of life and exceptional diving sites, the city is an essential stop. Its mix of Bedouin culture and laid-back seaside lifestyle, coupled with the proximity of grandiose natural sites, makes it a fascinating destination."
     },
     {
@@ -90,6 +98,7 @@ class _SharmElSheikhPageState extends State<SharmElSheikhPage> {
       "sub_folder": "Sharm El-Sheikh",
       "region": "Coastal Cities",
       "photo_url": "assets/sharm/tirana.jpg",
+      "map_url": "https://maps.google.com/?q=Tiran+Island+Red+Sea",
       "description": "Tiran Island is a true sanctuary for sea lovers. Located at the mouth of the Gulf of Aqaba, it is surrounded by coral reefs among the most preserved and richest in the Red Sea. Its incredibly clear waters allow for the observation of dense marine life, including sea turtles, rays, and a multitude of tropical fish, making each excursion an immersive adventure in an open-air natural aquarium."
     },
     {
@@ -98,6 +107,7 @@ class _SharmElSheikhPageState extends State<SharmElSheikhPage> {
       "sub_folder": "Sharm El-Sheikh",
       "region": "Coastal Cities",
       "photo_url": "assets/sharm/mer.jpg",
+      "map_url": "https://maps.google.com/?q=Sharm+El-Sheikh+Red+Sea",
       "description": "The Red Sea, a true jewel of Egypt, offers unparalleled swimming and diving conditions. With its turquoise waters whose temperature is ideal all year round and marine biodiversity of rare richness in the world, it is the favorite playground for divers. Exploring its seabed means diving into a universe of colorful corals and wild life where the underwater show is a constant wonder."
     },
     {
@@ -106,6 +116,7 @@ class _SharmElSheikhPageState extends State<SharmElSheikhPage> {
       "sub_folder": "Sharm El-Sheikh",
       "region": "Coastal Cities",
       "photo_url": "assets/sharm/ll.jpg",
+      "map_url": "https://maps.google.com/?q=Blue+Hole+Dahab",
       "description": "The Dahab Blue Hole is a legendary site that exerts a magnetic fascination on all divers around the globe. It is a natural underwater sinkhole of dizzying depth, surrounded by incredibly dense coral reefs. The brutal transition between the shallow lagoon blue and the deep, mysterious blue of the abyss offers a striking visual spectacle, making this place a challenge and a dream for underwater exploration enthusiasts."
     },
   ];
@@ -143,12 +154,25 @@ class _SharmElSheikhPageState extends State<SharmElSheikhPage> {
     await prefs.setStringList(_storageKeyPlaces, _favoritePlacesJson);
   }
 
+  // Fonction pour ouvrir Google Maps
+  Future<void> _openMap(String mapUrl) async {
+    final Uri uri = Uri.parse(mapUrl);
+    try {
+      bool launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      debugPrint('Error launching map: $e');
+    }
+  }
+
   Color _getCategoryColor(String category) {
     switch (category) {
       case "Monuments & Culture": return Colors.amber;
       case "Essential Excursions": return Colors.purpleAccent;
       case "Sea & Nature": return Colors.blueAccent;
-      default: return Colors.white;
+      default: return Colors.tealAccent;
     }
   }
 
@@ -203,6 +227,10 @@ class _SharmElSheikhPageState extends State<SharmElSheikhPage> {
     final String placeName = item['name'] ?? '';
     final bool isFav = _favoritePlacesJson.any((jsonStr) => jsonDecode(jsonStr)['name'] == placeName);
 
+    // Contraste automatique pour le texte et l'icône du bouton selon la couleur de la catégorie
+    final bool isLightColor = color == Colors.amber || color == Colors.greenAccent || color == Colors.tealAccent || color == Colors.white;
+    final Color textColor = isLightColor ? Colors.black : Colors.white;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
       decoration: BoxDecoration(
@@ -245,6 +273,27 @@ class _SharmElSheikhPageState extends State<SharmElSheikhPage> {
                 Text(item['sub_category'] ?? '', style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 10),
                 Text(item['description'] ?? '', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, height: 1.6)),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _openMap(item['map_url'] ?? ''),
+                    icon: Icon(Icons.map_outlined, size: 18, color: textColor),
+                    label: Text(
+                      "Open in Google Maps",
+                      style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: textColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
               ],
             ),
           )

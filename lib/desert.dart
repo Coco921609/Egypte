@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert'; // Import essentiel pour la sérialisation JSON des favoris
+import 'package:url_launcher/url_launcher.dart'; // Import pour l'ouverture de Google Maps
 
 // --- CLASSE DE DÉFILEMENT WEB ---
 // Permet le clic-et-glisser avec la souris comme sur un navigateur web
@@ -34,13 +35,15 @@ class _DesertPageState extends State<DesertPage> {
       "name": "Désert Blanc",
       "sub_category": "Les déserts : lieux à découvrir",
       "photo_url": "assets/desert/blanc.jpg",
-      "description": "Observer les formations rocheuses blanches uniques, camper dans le désert et faire de la photographie paysagère."
+      "description": "Observer les formations rocheuses blanches uniques, camper dans le désert et faire de la photographie paysagère.",
+      "mapsQuery": "Désert Blanc Égypte"
     },
     {
       "name": "Désert Noir",
       "sub_category": "Les déserts : lieux à découvrir",
       "photo_url": "assets/desert/noir.webp",
-      "description": "Le désert Noir tire son nom des roches volcaniques noires qui couvrent ses collines. On peut y faire des excursions en 4×4, camper sous les étoiles et découvrir des paysages lunaires spectaculaires."
+      "description": "Le désert Noir tire son nom des roches volcaniques noires qui couvrent ses collines. On peut y faire des excursions en 4×4, camper sous les étoiles et découvrir des paysages lunaires spectaculaires.",
+      "mapsQuery": "Désert Noir Égypte"
     },
   ];
 
@@ -79,6 +82,24 @@ class _DesertPageState extends State<DesertPage> {
       }
     });
     await prefs.setStringList(_cleStockageLieux, _favorisLieuxJson);
+  }
+
+  // Méthode sécurisée pour ouvrir l'application Google Maps
+  Future<void> _ouvrirMaps(String query) async {
+    final encodedQuery = Uri.encodeComponent(query);
+    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encodedQuery');
+
+    try {
+      bool launched = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        debugPrint('Impossible d\'ouvrir Google Maps');
+      }
+    } catch (e) {
+      debugPrint('Erreur ouverture Maps : $e');
+    }
   }
 
   @override
@@ -203,6 +224,27 @@ class _DesertPageState extends State<DesertPage> {
                 ),
                 const SizedBox(height: 10),
                 Text(item['description'] ?? '', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, height: 1.6)),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _ouvrirMaps(item['mapsQuery'] ?? "${item['name']} Égypte"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    icon: const Icon(Icons.navigation_outlined, size: 18),
+                    label: const Text(
+                      'Ouvrir dans Google Maps',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                ),
               ],
             ),
           )

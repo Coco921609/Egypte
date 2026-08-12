@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart'; // Import pour ouvrir Google Maps
 import 'dart:convert'; // Essential import for JSON serialization of favorites
 
 // --- WEB SCROLL CLASS ---
@@ -34,6 +35,7 @@ class _SiwaPageState extends State<SiwaPage> {
       "sub_folder": "Siwa",
       "region": "Nature & Adventure",
       "photo_url": "assets/siwa/bain.jpg",
+      "map_url": "https://maps.google.com/?q=Cleopatra's+Bath+Siwa",
       "description": "Cleopatra's Bath is a natural freshwater spring in Siwa. You can swim there in a unique desert setting and discover one of the most famous natural pools in Egypt."
     },
     {
@@ -42,6 +44,7 @@ class _SiwaPageState extends State<SiwaPage> {
       "sub_folder": "Siwa",
       "region": "Nature & Adventure",
       "photo_url": "assets/siwa/siw.jpg",
+      "map_url": "https://maps.google.com/?q=Gebel+al-Mawta+Siwa",
       "description": "Gebel al-Mawta, the Mountain of the Dead, is a unique archaeological site in Siwa. You can explore rock-cut tombs dating back to the Ptolemaic era and admire ancient paintings and hieroglyphs."
     },
     {
@@ -50,6 +53,7 @@ class _SiwaPageState extends State<SiwaPage> {
       "sub_folder": "Siwa",
       "region": "Nature & Adventure",
       "photo_url": "assets/siwa/sel.jpg",
+      "map_url": "https://maps.google.com/?q=Salt+Lakes+Siwa",
       "description": "The salt lakes of Siwa, including the famous Zeitoun Lake, allow you to float naturally just like in the Dead Sea. A unique experience in a spectacular desert setting."
     },
   ];
@@ -87,6 +91,26 @@ class _SiwaPageState extends State<SiwaPage> {
     await prefs.setStringList(_storageKeyPlaces, _favoritePlacesJson);
   }
 
+  // Fonction pour ouvrir Google Maps
+  Future<void> _openMap(String mapUrl) async {
+    final Uri uri = Uri.parse(mapUrl);
+    try {
+      bool launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      debugPrint('Error launching map: $e');
+    }
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category) {
+      case "Oasis: places and activities to discover": return Colors.amber;
+      default: return Colors.tealAccent;
+    }
+  }
+
   @override
   void dispose() {
     _mainScrollController.dispose();
@@ -121,10 +145,10 @@ class _SiwaPageState extends State<SiwaPage> {
                   padding: const EdgeInsets.fromLTRB(20, 25, 20, 5),
                   child: Text(
                     entry.key.toUpperCase(),
-                    style: const TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                    style: TextStyle(color: _getCategoryColor(entry.key), fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2),
                   ),
                 ),
-                ...entry.value.map((item) => _buildDesignCard(item, Colors.amber)),
+                ...entry.value.map((item) => _buildDesignCard(item, _getCategoryColor(entry.key))),
               ]),
             )),
             const SliverToBoxAdapter(child: SizedBox(height: 30)),
@@ -137,6 +161,10 @@ class _SiwaPageState extends State<SiwaPage> {
   Widget _buildDesignCard(Map<String, dynamic> item, Color color) {
     final String placeName = item['name'] ?? '';
     final bool isFav = _favoritePlacesJson.any((jsonStr) => jsonDecode(jsonStr)['name'] == placeName);
+
+    // Contraste automatique pour le texte et l'icône du bouton selon la couleur de la catégorie
+    final bool isLightColor = color == Colors.amber || color == Colors.greenAccent || color == Colors.tealAccent || color == Colors.white;
+    final Color textColor = isLightColor ? Colors.black : Colors.white;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
@@ -176,8 +204,31 @@ class _SiwaPageState extends State<SiwaPage> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 5),
+                Text(item['sub_category'] ?? '', style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 10),
                 Text(item['description'] ?? '', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, height: 1.6)),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _openMap(item['map_url'] ?? ''),
+                    icon: Icon(Icons.map_outlined, size: 18, color: textColor),
+                    label: Text(
+                      "Open in Google Maps",
+                      style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: textColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
               ],
             ),
           )

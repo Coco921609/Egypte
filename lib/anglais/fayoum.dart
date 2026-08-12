@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart'; // Import pour ouvrir Google Maps
 import 'dart:convert'; // Essential import for JSON serialization of favorites
 
 // --- WEB SCROLL CLASS ---
@@ -34,6 +35,7 @@ class _FayoumPageState extends State<FayoumPage> {
       "sub_folder": "Fayoum",
       "region": "Nature & Adventure",
       "photo_url": "assets/fayoum/cascade.jpg",
+      "map_url": "https://maps.google.com/?q=Wadi+El-Rayan+Waterfalls+Fayoum",
       "description": "The Wadi El-Rayan waterfalls are the only natural waterfalls in Egypt. You can admire two lakes connected by a waterfall, walk in the desert, and enjoy spectacular landscapes between dunes and water."
     },
     {
@@ -42,6 +44,7 @@ class _FayoumPageState extends State<FayoumPage> {
       "sub_folder": "Fayoum",
       "region": "Nature & Adventure",
       "photo_url": "assets/fayoum/tunis.webp",
+      "map_url": "https://maps.google.com/?q=Tunis+Village+Fayoum",
       "description": "Tunis village is a small artist village nestled on the edge of Lake Qarun. You can discover pottery workshops, walk through the colorful alleys, and enjoy a magnificent view of the lake."
     },
     {
@@ -50,6 +53,7 @@ class _FayoumPageState extends State<FayoumPage> {
       "sub_folder": "Fayoum",
       "region": "Nature & Adventure",
       "photo_url": "assets/fayoum/lac.jpg",
+      "map_url": "https://maps.google.com/?q=Lake+Qarun+Fayoum",
       "description": "Lake Qarun is one of the oldest natural lakes in the world. You can go on boat trips, observe migratory birds, and enjoy the desert landscape around the lake."
     },
   ];
@@ -87,6 +91,26 @@ class _FayoumPageState extends State<FayoumPage> {
     await prefs.setStringList(_storageKeyPlaces, _favoritePlacesJson);
   }
 
+  // Fonction pour ouvrir Google Maps
+  Future<void> _openMap(String mapUrl) async {
+    final Uri uri = Uri.parse(mapUrl);
+    try {
+      bool launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      debugPrint('Error launching map: $e');
+    }
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category) {
+      case "Activities to do in Fayoum": return Colors.tealAccent;
+      default: return Colors.tealAccent;
+    }
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -121,10 +145,10 @@ class _FayoumPageState extends State<FayoumPage> {
                   padding: const EdgeInsets.fromLTRB(20, 25, 20, 5),
                   child: Text(
                     entry.key.toUpperCase(),
-                    style: const TextStyle(color: Colors.tealAccent, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                    style: TextStyle(color: _getCategoryColor(entry.key), fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2),
                   ),
                 ),
-                ...entry.value.map((item) => _buildDesignCard(item, Colors.tealAccent)),
+                ...entry.value.map((item) => _buildDesignCard(item, _getCategoryColor(entry.key))),
               ]),
             )),
             const SliverToBoxAdapter(child: SizedBox(height: 30)),
@@ -137,6 +161,10 @@ class _FayoumPageState extends State<FayoumPage> {
   Widget _buildDesignCard(Map<String, dynamic> item, Color color) {
     final String placeName = item['name'] ?? '';
     final bool isFav = _favoritePlacesJson.any((jsonStr) => jsonDecode(jsonStr)['name'] == placeName);
+
+    // Contraste automatique pour le texte et l'icône du bouton selon la couleur de la catégorie
+    final bool isLightColor = color == Colors.amber || color == Colors.greenAccent || color == Colors.tealAccent || color == Colors.white;
+    final Color textColor = isLightColor ? Colors.black : Colors.white;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
@@ -176,8 +204,31 @@ class _FayoumPageState extends State<FayoumPage> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 5),
+                Text(item['sub_category'] ?? '', style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 10),
                 Text(item['description'] ?? '', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, height: 1.6)),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _openMap(item['map_url'] ?? ''),
+                    icon: Icon(Icons.map_outlined, size: 18, color: textColor),
+                    label: Text(
+                      "Open in Google Maps",
+                      style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: textColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
               ],
             ),
           )

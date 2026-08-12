@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert'; // Import essentiel pour la sérialisation JSON des favoris
+import 'package:url_launcher/url_launcher.dart'; // Import pour l'ouverture de Google Maps
 
 // --- CLASSE DE DÉFILEMENT WEB ---
 // Permet le clic-et-glisser avec la souris comme sur un navigateur web
@@ -33,19 +34,22 @@ class _FayoumPageState extends State<FayoumPage> {
       "name": "Cascades de Wadi El-Rayan",
       "sub_category": "Les activités à faire à Fayoum",
       "photo_url": "assets/fayoum/cascade.jpg",
-      "description": "Les cascades de Wadi El-Rayan sont les seules cascades naturelles d'Égypte. On peut y admirer deux lacs reliés par une cascade, se promener dans le désert et profiter de paysages spectaculaires entre dunes et eau."
+      "description": "Les cascades de Wadi El-Rayan sont les seules cascades naturelles d'Égypte. On peut y admirer deux lacs reliés par une cascade, se promener dans le désert et profiter de paysages spectaculaires entre dunes et eau.",
+      "mapsQuery": "Wadi El Rayan Cascades Fayoum"
     },
     {
       "name": "Oasis de Tunis",
       "sub_category": "Les activités à faire à Fayoum",
       "photo_url": "assets/fayoum/tunis.webp",
-      "description": "Le village de Tunis est un petit village d'artistes niché au bord du lac Qarun. On peut y découvrir des ateliers de poterie, se promener dans les ruelles colorées et profiter d'une vue magnifique sur le lac."
+      "description": "Le village de Tunis est un petit village d'artistes niché au bord du lac Qarun. On peut y découvrir des ateliers de poterie, se promener dans les ruelles colorées et profiter d'une vue magnifique sur le lac.",
+      "mapsQuery": "Tunis Village Fayoum"
     },
     {
       "name": "Lac Qarun",
       "sub_category": "Les activités à faire à Fayoum",
       "photo_url": "assets/fayoum/lac.jpg",
-      "description": "Le lac Qarun est l'un des plus anciens lacs naturels du monde. On peut y faire des balades en bateau, observer les oiseaux migrateurs et profiter du paysage désertique autour du lac."
+      "description": "Le lac Qarun est l'un des plus anciens lacs naturels du monde. On peut y faire des balades en bateau, observer les oiseaux migrateurs et profiter du paysage désertique autour du lac.",
+      "mapsQuery": "Lac Qarun Fayoum"
     },
   ];
 
@@ -84,6 +88,24 @@ class _FayoumPageState extends State<FayoumPage> {
       }
     });
     await prefs.setStringList(_cleStockageLieux, _favorisLieuxJson);
+  }
+
+  // Méthode sécurisée pour ouvrir l'application Google Maps
+  Future<void> _ouvrirMaps(String query) async {
+    final encodedQuery = Uri.encodeComponent(query);
+    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encodedQuery');
+
+    try {
+      bool launched = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        debugPrint('Impossible d\'ouvrir Google Maps');
+      }
+    } catch (e) {
+      debugPrint('Erreur ouverture Maps : $e');
+    }
   }
 
   @override
@@ -208,6 +230,27 @@ class _FayoumPageState extends State<FayoumPage> {
                 ),
                 const SizedBox(height: 10),
                 Text(item['description'] ?? '', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, height: 1.6)),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _ouvrirMaps(item['mapsQuery'] ?? "${item['name']} Fayoum"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    icon: const Icon(Icons.navigation_outlined, size: 18),
+                    label: const Text(
+                      'Ouvrir dans Google Maps',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                ),
               ],
             ),
           )

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart'; // Import pour ouvrir les liens Google Maps
 import 'dart:convert'; // Import essentiel pour la sérialisation JSON des favoris
 
 // --- CLASSE DE DÉFILEMENT WEB ---
@@ -34,18 +35,21 @@ class _SiwaPageState extends State<SiwaPage> {
       "name": "Le bain de Cléopâtre",
       "sub_category": "Oasis : lieux et activités à découvrir",
       "photo_url": "assets/siwa/bain.jpg",
+      "map_url": "https://maps.google.com/?q=Cleopatra+Bath+Siwa",
       "description": "Le bain de Cléopâtre est une source naturelle d'eau douce à Siwa. On peut s'y baigner dans un cadre désertique unique et découvrir l'une des piscines naturelles les plus célèbres d'Égypte."
     },
     {
       "name": "Gebel al-Mawta",
       "sub_category": "Oasis : lieux et activités à découvrir",
       "photo_url": "assets/siwa/siw.jpg",
+      "map_url": "https://maps.google.com/?q=Gebel+al-Mawta+Siwa",
       "description": "Gebel al-Mawta, la montagne des morts, est un site archéologique unique à Siwa. On peut y explorer des tombeaux rupestres datant de l'époque ptolémaïque et admirer les peintures et hiéroglyphes anciens."
     },
     {
       "name": "Les lacs de sel",
       "sub_category": "Oasis : lieux et activités à découvrir",
       "photo_url": "assets/siwa/sel.jpg",
+      "map_url": "https://maps.google.com/?q=Salt+Lakes+Siwa",
       "description": "Les lacs de sel de Siwa, dont le célèbre lac Zeitoun, permettent de flotter naturellement comme dans la mer Morte. Une expérience unique dans un cadre désertique spectaculaire."
     },
   ];
@@ -85,6 +89,19 @@ class _SiwaPageState extends State<SiwaPage> {
       }
     });
     await prefs.setStringList(_cleStockageLieux, _favorisLieuxJson);
+  }
+
+  // Fonction pour ouvrir Google Maps
+  Future<void> _openMap(String mapUrl) async {
+    final Uri uri = Uri.parse(mapUrl);
+    try {
+      bool launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      debugPrint('Erreur d\'ouverture de la carte : $e');
+    }
   }
 
   @override
@@ -209,6 +226,27 @@ class _SiwaPageState extends State<SiwaPage> {
                 ),
                 const SizedBox(height: 10),
                 Text(item['description'] ?? '', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, height: 1.6)),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _openMap(item['map_url'] ?? ''),
+                    icon: const Icon(Icons.map_outlined, size: 18, color: Colors.black),
+                    label: const Text(
+                      "Ouvrir dans Google Maps",
+                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
               ],
             ),
           )

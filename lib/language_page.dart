@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -8,6 +9,7 @@ import 'home_arabic.dart' as ar;
 
 class LanguagePage extends StatefulWidget {
   const LanguagePage({super.key});
+
   @override
   State<LanguagePage> createState() => _LanguagePageState();
 }
@@ -16,153 +18,346 @@ class _LanguagePageState extends State<LanguagePage> {
   final Map<String, Map<String, String>> _localizedValues = {
     'Français': {
       'title': 'Égypte',
-      'button': 'Découvrir l\'Égypte',
-      'desc': 'Découvrez l\'âme de l\'Égypte. Au-delà des monuments, Egypt go vous emmène explorer les marchés vibrants du Caire, les villages nubiens authentiques, hors des sentiers battus comme Siwa, le Fayoum, ainsi que les déserts blanc et noir, tout en savourant les plats égyptiens typiques.'
+      'button': 'Découvrir le Pays',
+      'desc': 'Explorez l\'Égypte au-delà des monuments : les marchés vibrants du Caire, la magie des villages nubiens, les oasis préservées de Siwa et du Fayoum, et les immensités des déserts blanc et noir.'
     },
     'Anglais': {
       'title': 'Egypt',
-      'button': 'Discover Egypt',
-      'desc': 'Discover the soul of Egypt. Beyond the monuments, Egypt go takes you to explore the vibrant markets of Cairo, authentic Nubian villages, and off-the-beaten-path destinations like Siwa, Fayoum, and the White and Black Deserts, while savoring typical Egyptian dishes.'
+      'button': 'Discover the Country',
+      'desc': 'Explore Egypt beyond the monuments: the vibrant markets of Cairo, authentic Nubian villages, pristine oases like Siwa and Fayoum, and the vast white and black deserts.'
     },
     'Arabe': {
-      'title': 'مصر ',
-      'button': 'اكتشف مصر',
-      'desc': 'اكتشف روح مصر. بعيداً عن المعالم الأثرية, تأخذك "مصر جو" لاستكشاف أسواق القاهرة النابضة بالحياة، والقرى النوبية الأصيلة، ووجهات بعيدة عن المسارات التقليدية مثل سيوة والفيوم والصحراء البيضاء والسوداء، مع الاستمتاع بتذوق الأطباق المصرية الأصيلة.'
+      'title': 'مصر',
+      'button': 'استكشف البلاد',
+      'desc': 'استكشف مصر بعيداً عن المعالم التقليدية: أسواق القاهرة النابضة، القرى النوبية الأصيلة، واحات سيوة والفيوم، وسحر الصحراء البيضاء والسوداء.'
     },
   };
 
   String _currentLang = 'Français';
 
+  // Couleurs Luxe Égyptien
+  static const Color obsidianBg = Color(0xFF09090C);
+  static const Color darkCardBg = Color(0xFF121218);
+  static const Color goldPrimary = Color(0xFFC5A059);
+  static const Color goldLight = Color(0xFFF3E5AB);
+
+  static const LinearGradient luxuryGoldGradient = LinearGradient(
+    colors: [
+      Color(0xFFE6CA65),
+      Color(0xFFC5A059),
+      Color(0xFF997A15),
+    ],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // Position physique fixe dans le sélecteur (Français = -1, Anglais = 0, Arabe = 1)
+  double _getAlignX() {
+    if (_currentLang == 'Français') return -1.0;
+    if (_currentLang == 'Anglais') return 0.0;
+    return 1.0; // Arabe
+  }
+
   @override
   Widget build(BuildContext context) {
     final texts = _localizedValues[_currentLang]!;
     final textDirection = _currentLang == 'Arabe' ? TextDirection.rtl : TextDirection.ltr;
-    final List<String> languages = _localizedValues.keys.toList();
+    final List<String> languages = ['Français', 'Anglais', 'Arabe'];
 
     return Directionality(
       textDirection: textDirection,
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
         child: Scaffold(
-          backgroundColor: const Color(0xFF121212),
-          body: Column(
+          backgroundColor: obsidianBg,
+          body: Stack(
             children: [
-              ClipPath(
-                clipper: WaveClipper(),
-                child: SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.45,
-                  width: double.infinity,
-                  child: Image.asset(
-                    'assets/egpyte.jpg',
-                    fit: BoxFit.cover,
+              // 1. Halo lumineux doré en arrière-plan
+              Positioned(
+                top: -80.0,
+                left: MediaQuery.of(context).size.width * 0.25,
+                child: Container(
+                  width: 220.0,
+                  height: 220.0,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: goldPrimary.withOpacity(0.08),
+                        blurRadius: 90.0,
+                        spreadRadius: 40.0,
+                      ),
+                    ],
                   ),
                 ),
               ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.only(top: 20, left: 30, right: 30, bottom: 30),
+
+              // 2. Contenu principal
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 20.0),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      const Spacer(flex: 1),
+
+                      // --- EN-TÊTE AVEC TITRE ÉGYPTE ET DRAPEAU ---
                       Column(
                         children: [
-                          Text(
-                            texts['title']!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
+                          const Text(
+                            "𓋹",
+                            style: TextStyle(
+                              fontSize: 30.0,
+                              color: goldPrimary,
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                            child: Row(
-                              children: [
-                                Expanded(child: Container(height: 1, color: Colors.white.withOpacity(0.1))),
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 12),
-                                  child: Text("🇪🇬", style: TextStyle(fontSize: 18)),
+                          const SizedBox(height: 10.0),
+                          // Titre Égypte avec accent
+                          ShaderMask(
+                            shaderCallback: (bounds) => luxuryGoldGradient.createShader(bounds),
+                            child: Text(
+                              texts['title']!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 42.0,
+                                fontWeight: FontWeight.w400,
+                                letterSpacing: 3.0,
+                                fontFamily: 'serif',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14.0),
+                          // Drapeau d'Égypte
+                          Container(
+                            padding: const EdgeInsets.all(10.0),
+                            decoration: BoxDecoration(
+                              color: darkCardBg.withOpacity(0.8),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: goldPrimary.withOpacity(0.4),
+                                width: 1.0,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: goldPrimary.withOpacity(0.15),
+                                  blurRadius: 12.0,
                                 ),
-                                Expanded(child: Container(height: 1, color: Colors.white.withOpacity(0.1))),
                               ],
                             ),
-                          ),
-                          Text(
-                            texts['desc']!,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.7),
-                              fontSize: 13.5,
-                              height: 1.6,
+                            child: const Text(
+                              "🇪🇬",
+                              style: TextStyle(fontSize: 24.0),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 35),
-                      Column(
-                        children: [
-                          Row(
-                            // Correction apportée ici :
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: languages.map((lang) {
-                              bool isSelected = _currentLang == lang;
-                              String displayLabel = lang;
-                              if (lang == 'Anglais') displayLabel = 'English';
-                              if (lang == 'Arabe') displayLabel = 'العربية';
 
-                              return GestureDetector(
-                                onTap: () => setState(() => _currentLang = lang),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  margin: const EdgeInsets.symmetric(horizontal: 6),
-                                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? Colors.lightGreen : Colors.white.withOpacity(0.05),
-                                    borderRadius: BorderRadius.circular(30),
-                                    border: Border.all(
-                                      color: isSelected ? Colors.lightGreen : Colors.white.withOpacity(0.15),
-                                      width: 1.5,
-                                    ),
-                                  ),
+                      const Spacer(flex: 2),
+
+                      // --- SÉLECTEUR DE LANGUE (ISOLÉ EN LTR POUR GARANTIR L'ANIMATION EN ARABE) ---
+                      Directionality(
+                        textDirection: TextDirection.ltr,
+                        child: Column(
+                          children: [
+                            // Scarabée indicateur glissant
+                            AnimatedAlign(
+                              duration: const Duration(milliseconds: 350),
+                              curve: Curves.easeOutBack,
+                              alignment: Alignment(_getAlignX(), 0.0),
+                              child: const SizedBox(
+                                width: 100.0,
+                                child: Center(
                                   child: Text(
-                                    displayLabel,
+                                    "𓆣",
                                     style: TextStyle(
-                                      color: isSelected ? Colors.black : Colors.white.withOpacity(0.8),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
+                                      fontSize: 22.0,
+                                      color: goldPrimary,
                                     ),
                                   ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 30),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 55,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                if (_currentLang == 'Français') Get.to(() => const fr.Home());
-                                else if (_currentLang == 'Anglais') Get.to(() => const en.HomeEnglish());
-                                else Get.to(() => const ar.Home());
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.lightGreen,
-                                foregroundColor: Colors.black,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
                                 ),
                               ),
+                            ),
+                            const SizedBox(height: 6.0),
+                            // Piste du sélecteur
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                double itemWidth = constraints.maxWidth / 3;
+                                return Container(
+                                  height: 52.0,
+                                  decoration: BoxDecoration(
+                                    color: darkCardBg.withOpacity(0.7),
+                                    borderRadius: BorderRadius.circular(30.0),
+                                    border: Border.all(
+                                      color: goldPrimary.withOpacity(0.25),
+                                      width: 1.0,
+                                    ),
+                                  ),
+                                  child: Stack(
+                                    children: [
+                                      // Lingot d'or animé qui glisse
+                                      AnimatedAlign(
+                                        duration: const Duration(milliseconds: 350),
+                                        curve: Curves.easeInOutCubic,
+                                        alignment: Alignment(_getAlignX(), 0.0),
+                                        child: Container(
+                                          width: itemWidth - 8.0,
+                                          height: 44.0,
+                                          margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                                          decoration: BoxDecoration(
+                                            gradient: luxuryGoldGradient,
+                                            borderRadius: BorderRadius.circular(26.0),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: goldPrimary.withOpacity(0.4),
+                                                blurRadius: 14.0,
+                                                offset: const Offset(0.0, 2.0),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      // Boutons
+                                      Row(
+                                        children: languages.map((lang) {
+                                          bool isSelected = _currentLang == lang;
+                                          String displayLabel = lang;
+                                          if (lang == 'Anglais') displayLabel = 'English';
+                                          if (lang == 'Arabe') displayLabel = 'العربية';
+
+                                          return Expanded(
+                                            child: GestureDetector(
+                                              behavior: HitTestBehavior.opaque,
+                                              onTap: () => setState(() => _currentLang = lang),
+                                              child: Center(
+                                                child: Padding(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                                  child: FittedBox(
+                                                    fit: BoxFit.scaleDown,
+                                                    child: AnimatedDefaultTextStyle(
+                                                      duration: const Duration(milliseconds: 200),
+                                                      style: TextStyle(
+                                                        color: isSelected ? obsidianBg : Colors.white.withOpacity(0.7),
+                                                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                                                        fontSize: 13.5,
+                                                      ),
+                                                      child: Text(displayLabel),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 24.0),
+
+                      // --- CARTE TEXTE DESCRIPTIF ---
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16.0),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                          child: Container(
+                            padding: const EdgeInsets.all(22.0),
+                            decoration: BoxDecoration(
+                              color: darkCardBg.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(16.0),
+                              border: Border.all(
+                                color: goldPrimary.withOpacity(0.15),
+                                width: 1.0,
+                              ),
+                            ),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 300),
+                              transitionBuilder: (Widget child, Animation<double> animation) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0.0, 0.05),
+                                      end: Offset.zero,
+                                    ).animate(animation),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                texts['desc']!,
+                                key: ValueKey<String>(_currentLang),
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.85),
+                                  fontSize: 13.5,
+                                  height: 1.7,
+                                  fontWeight: FontWeight.w300,
+                                  fontFamily: 'serif',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const Spacer(flex: 2),
+
+                      // --- BOUTON D'ACTION DÉCOUVRIR LE PAYS ---
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56.0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: luxuryGoldGradient,
+                            borderRadius: BorderRadius.circular(14.0),
+                            boxShadow: [
+                              BoxShadow(
+                                color: goldPrimary.withOpacity(0.2),
+                                blurRadius: 20.0,
+                                offset: const Offset(0.0, 8.0),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              if (_currentLang == 'Français') {
+                                Get.to(() => const fr.Home());
+                              } else if (_currentLang == 'Anglais') {
+                                Get.to(() => const en.HomeEnglish());
+                              } else {
+                                Get.to(() => const ar.Home());
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14.0),
+                              ),
+                            ),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 250),
                               child: Text(
                                 texts['button']!,
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                key: ValueKey<String>(_currentLang),
+                                style: const TextStyle(
+                                  color: obsidianBg,
+                                  fontSize: 15.0,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.5,
+                                ),
                               ),
                             ),
                           ),
-                        ],
+                        ),
                       ),
+
+                      const Spacer(flex: 1),
                     ],
                   ),
                 ),
@@ -173,23 +368,4 @@ class _LanguagePageState extends State<LanguagePage> {
       ),
     );
   }
-}
-
-class WaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    var path = Path();
-    path.lineTo(0, size.height - 40);
-    var firstControlPoint = Offset(size.width * 0.25, size.height);
-    var firstEndPoint = Offset(size.width * 0.55, size.height - 35);
-    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy, firstEndPoint.dx, firstEndPoint.dy);
-    var secondControlPoint = Offset(size.width * 0.80, size.height - 65);
-    var secondEndPoint = Offset(size.width, size.height - 25);
-    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy, secondEndPoint.dx, secondEndPoint.dy);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

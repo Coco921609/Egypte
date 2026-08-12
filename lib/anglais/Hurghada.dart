@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart'; // Import pour ouvrir Google Maps
 import 'dart:convert'; // Essential import for JSON serialization of favorites
 
 // --- WEB SCROLL CLASS ---
@@ -34,6 +35,7 @@ class _HurghadaPageState extends State<HurghadaPage> {
       "sub_folder": "Hurghada",
       "region": "Red Sea",
       "photo_url": "assets/hurgada/qaud.jpg",
+      "map_url": "https://maps.google.com/?q=Quad+Safari+Hurghada",
       "description": "Experience a pure adrenaline rush by riding a quad bike through the wild expanses of the Eastern Desert. This adventure takes you to the heart of lunar landscapes and golden dunes as far as the eye can see, with a stop at an authentic Bedouin camp to savor traditional tea and discover an ancestral way of life, far from the tourist bustle."
     },
     {
@@ -42,6 +44,7 @@ class _HurghadaPageState extends State<HurghadaPage> {
       "sub_folder": "Hurghada",
       "region": "Red Sea",
       "photo_url": "assets/hurgada/ile.jpg",
+      "map_url": "https://maps.google.com/?q=Giftun+Island+Hurghada",
       "description": "A true jewel of the Red Sea, Giftun Island is a protected marine sanctuary with crystal-clear turquoise waters. By diving into its renowned sites, you will discover incredibly dense multicolored coral gardens and abundant underwater life, ranging from sea turtles to exotic tropical fish in an ecosystem of pristine beauty."
     },
     {
@@ -50,6 +53,7 @@ class _HurghadaPageState extends State<HurghadaPage> {
       "sub_folder": "Hurghada",
       "region": "Red Sea",
       "photo_url": "assets/hurgada/marina.webp",
+      "map_url": "https://maps.google.com/?q=Hurghada+Marina",
       "description": "A symbol of Hurghada's modern revival, the marina is a must-visit for lovers of luxury and the good life. Between the sumptuous yachts moored at the port and the chic terraces lining the quay, it is the perfect place to stroll at the end of the day, enjoy the sea breeze, dine in gourmet restaurants, or extend the evening in an elegant and lively atmosphere."
     },
   ];
@@ -88,12 +92,25 @@ class _HurghadaPageState extends State<HurghadaPage> {
     await prefs.setStringList(_storageKeyPlaces, _favoritePlacesJson);
   }
 
+  // Fonction pour ouvrir Google Maps
+  Future<void> _openMap(String mapUrl) async {
+    final Uri uri = Uri.parse(mapUrl);
+    try {
+      bool launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      debugPrint('Error launching map: $e');
+    }
+  }
+
   Color _getCategoryColor(String category) {
     switch (category) {
       case "Activities": return Colors.redAccent;
       case "Sea & Nature": return Colors.blueAccent;
       case "Relaxation & Nightlife": return Colors.purpleAccent;
-      default: return Colors.white;
+      default: return Colors.tealAccent;
     }
   }
 
@@ -148,6 +165,10 @@ class _HurghadaPageState extends State<HurghadaPage> {
     final String placeName = item['name'] ?? '';
     final bool isFav = _favoritePlacesJson.any((jsonStr) => jsonDecode(jsonStr)['name'] == placeName);
 
+    // Contraste automatique pour le texte et l'icône du bouton selon la couleur de la catégorie
+    final bool isLightColor = color == Colors.amber || color == Colors.greenAccent || color == Colors.tealAccent || color == Colors.white;
+    final Color textColor = isLightColor ? Colors.black : Colors.white;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
       decoration: BoxDecoration(
@@ -199,6 +220,27 @@ class _HurghadaPageState extends State<HurghadaPage> {
                 Text(item['sub_category'] ?? '', style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 10),
                 Text(item['description'] ?? '', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, height: 1.6)),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _openMap(item['map_url'] ?? ''),
+                    icon: Icon(Icons.map_outlined, size: 18, color: textColor),
+                    label: Text(
+                      "Open in Google Maps",
+                      style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: textColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
               ],
             ),
           )

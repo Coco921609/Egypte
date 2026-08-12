@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart'; // Import pour ouvrir Google Maps
 import 'dart:convert'; // Essential import for JSON serialization of favorites
 
 // --- WEB SCROLL CLASS ---
@@ -34,6 +35,7 @@ class _AssouanPageState extends State<AssouanPage> {
       "sub_folder": "Aswan",
       "region": "Historical Cities",
       "photo_url": "assets/assouan/s.jpg",
+      "map_url": "https://maps.google.com/?q=Abu+Simbel",
       "description": "Located at the edge of the desert, this complex of two temples carved into the rock by Ramesses II is a masterpiece of world architecture. The titanic relocation of these temples to save them from the waters of the dam is an unprecedented human and technical adventure."
     },
     {
@@ -42,6 +44,7 @@ class _AssouanPageState extends State<AssouanPage> {
       "sub_folder": "Aswan",
       "region": "Historical Cities",
       "photo_url": "assets/assouan/phi.webp",
+      "map_url": "https://maps.google.com/?q=Temple+of+Philae+Aswan",
       "description": "Dedicated to the goddess Isis, this temple is a jewel of elegance located on the island of Agilkia. Its colonnades, delicate reliefs, and position amidst the waters of the Nile make it one of the most poetic and best-preserved sites in all of Lower Nubia."
     },
     {
@@ -50,6 +53,7 @@ class _AssouanPageState extends State<AssouanPage> {
       "sub_folder": "Aswan",
       "region": "Historical Cities",
       "photo_url": "assets/assouan/h.jpg",
+      "map_url": "https://maps.google.com/?q=Temple+of+Horus+Edfu",
       "description": "Built in Edfu between Aswan and Luxor, this temple is one of the best-preserved in Egypt. Dedicated to the falcon god Horus, it stands out for its complete structure, imposing pylons, and solemn atmosphere that transports the visitor directly to the heart of the Ptolemaic era."
     },
     {
@@ -58,6 +62,7 @@ class _AssouanPageState extends State<AssouanPage> {
       "sub_folder": "Aswan",
       "region": "Historical Cities",
       "photo_url": "assets/assouan/nasser.jpg",
+      "map_url": "https://maps.google.com/?q=Lake+Nasser+Aswan",
       "description": "One of the largest artificial lakes in the world, created by the construction of the High Dam. Its deep blue waters contrast beautifully with the aridity of the surrounding desert."
     },
     {
@@ -66,6 +71,7 @@ class _AssouanPageState extends State<AssouanPage> {
       "sub_folder": "Aswan",
       "region": "Historical Cities",
       "photo_url": "assets/assouan/saint.jpeg",
+      "map_url": "https://maps.google.com/?q=Monastery+of+Saint+Simeon+Aswan",
       "description": "Located on the west bank of the Nile, this 7th-century fortified monastery is one of the best-preserved examples of Coptic architecture in Egypt. Isolated in the desert landscape, it bears witness to the ascetic life of the monks with its impressive mud-brick walls, churches with ancient frescoes, and monastic cells overlooking the valley."
     },
     {
@@ -74,6 +80,7 @@ class _AssouanPageState extends State<AssouanPage> {
       "sub_folder": "Aswan",
       "region": "Historical Cities",
       "photo_url": "assets/assouan/ile.jpg",
+      "map_url": "https://maps.google.com/?q=Elephantine+Island+Aswan",
       "description": "A true historical crossroads, this island houses the Temple of Khnum and an ancient Nilometer. Between its lush gardens and the traditional houses of the Nubian village located there, it offers total immersion in Aswan's daily life."
     },
     {
@@ -82,6 +89,7 @@ class _AssouanPageState extends State<AssouanPage> {
       "sub_folder": "Aswan",
       "region": "Historical Cities",
       "photo_url": "assets/assouan/village.jpeg",
+      "map_url": "https://maps.google.com/?q=Nubian+Village+Aswan",
       "description": "Discover the Nubian way of life through their colorful houses, refined craftsmanship, and hospitality. An essential stop to understand the unique identity of this culture."
     },
     {
@@ -90,6 +98,7 @@ class _AssouanPageState extends State<AssouanPage> {
       "sub_folder": "Aswan",
       "region": "Historical Cities",
       "photo_url": "assets/assouan/parc.jpeg",
+      "map_url": "https://maps.google.com/?q=Kitchener's+Island+Aswan",
       "description": "A green paradise in the middle of the river, gathering rare exotic species from every continent. It is the perfect place for a shaded break."
     },
     {
@@ -98,6 +107,7 @@ class _AssouanPageState extends State<AssouanPage> {
       "sub_folder": "Aswan",
       "region": "Historical Cities",
       "photo_url": "assets/assouan/balade.jpg",
+      "map_url": "https://maps.google.com/?q=Aswan+Nile+Felucca",
       "description": "Gliding on the Nile in a felucca, without the noise of an engine, is a unique sensory experience. The most authentic way to explore the desert islets and fascinating landscapes of Nubia."
     },
     {
@@ -106,6 +116,7 @@ class _AssouanPageState extends State<AssouanPage> {
       "sub_folder": "Aswan",
       "region": "Historical Cities",
       "photo_url": "assets/assouan/ombo.jpeg",
+      "map_url": "https://maps.google.com/?q=Temple+of+Kom+Ombo",
       "description": "Located on a promontory overlooking the Nile, this temple is an architectural rarity. Its perfectly symmetrical design allows it to be dedicated simultaneously to two deities: Sobek, the crocodile god, and Haroeris, the falcon god. It is a fascinating place to understand duality in ancient Egyptian religion."
     },
   ];
@@ -143,13 +154,26 @@ class _AssouanPageState extends State<AssouanPage> {
     await prefs.setStringList(_storageKeyPlaces, _favoritePlacesJson);
   }
 
+  // Fonction pour ouvrir Google Maps
+  Future<void> _openMap(String mapUrl) async {
+    final Uri uri = Uri.parse(mapUrl);
+    try {
+      bool launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      debugPrint('Error launching map: $e');
+    }
+  }
+
   Color _getCategoryColor(String category) {
     switch (category) {
       case "Major Monuments": return Colors.amber;
       case "Nature and Landscapes": return Colors.greenAccent;
       case "History and Culture": return Colors.blueAccent;
       case "Activities": return Colors.redAccent;
-      default: return Colors.white;
+      default: return Colors.tealAccent;
     }
   }
 
@@ -204,6 +228,10 @@ class _AssouanPageState extends State<AssouanPage> {
     final String placeName = item['name'] ?? '';
     final bool isFav = _favoritePlacesJson.any((jsonStr) => jsonDecode(jsonStr)['name'] == placeName);
 
+    // Contraste automatique pour le texte et l'icône du bouton selon la couleur de la catégorie
+    final bool isLightColor = color == Colors.amber || color == Colors.greenAccent || color == Colors.tealAccent || color == Colors.white;
+    final Color textColor = isLightColor ? Colors.black : Colors.white;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
       decoration: BoxDecoration(
@@ -246,6 +274,27 @@ class _AssouanPageState extends State<AssouanPage> {
                 Text(item['sub_category'] ?? '', style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 10),
                 Text(item['description'] ?? '', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, height: 1.6)),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _openMap(item['map_url'] ?? ''),
+                    icon: Icon(Icons.map_outlined, size: 18, color: textColor),
+                    label: Text(
+                      "Open in Google Maps",
+                      style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: textColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
               ],
             ),
           )
