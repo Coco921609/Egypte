@@ -39,4 +39,4 @@
         - name: Deploy to GitHub Pages
           id: deployment
           uses: actions/deploy-pages@v4
-    '@ | Out-File -FilePath ".github\workflows\deploy.yml" -Encoding utf8
+    '@ | Out-File -FilePath ".github\workflows\deploy.yml" -Encoding utf8 ; git add . ; git commit -m "Ajout workflow" ; git push origin main
