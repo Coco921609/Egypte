@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert'; // Import essentiel pour la sérialisation JSON des favoris
-import 'package:url_launcher/url_launcher.dart'; // Import pour l'ouverture de Google Maps[cite: 14]
 
 // --- CLASSE DE DÉFILEMENT WEB ---
 class WebScrollBehavior extends MaterialScrollBehavior {
@@ -24,31 +24,28 @@ class HurghadaPage extends StatefulWidget {
 class _HurghadaPageState extends State<HurghadaPage> {
   final ScrollController _scrollController = ScrollController();
 
-  // Clé globale identique partagée avec les autres pages (version française)[cite: 14]
+  // Clé corrigée pour le tiroir de favoris arabe
   List<String> _favorisLieuxJson = [];
-  final String _cleStockageLieux = 'lieux_favoris_complets_fr';
+  final String _cleStockageLieux = 'lieux_favoris_complets_ar';
 
   static const List<Map<String, dynamic>> _hurghadaData = [
     {
-      "name": "Safari en quad dans le désert",
-      "sub_category": "Activités",
+      "name": "سفاري بالدراجات الرباعية في الصحراء",
+      "sub_category": "أنشطة",
       "photo_url": "assets/hurgada/qaud.jpg",
-      "description": "Vivez une montée d'adrénaline pure en chevauchant un quad à travers les étendues sauvages du désert oriental. Cette aventure vous emmène au cœur de paysages lunaires et de dunes dorées à perte de vue, avec une halte dans un campement bédouin authentique pour savourer un thé traditionnel et découvrir un mode de vie ancestral, loin de l'effervescence touristique.",
-      "mapsQuery": "Quad Desert Safari Hurghada"
+      "description": "عش تجربة مليئة بالأدرينالين أثناء قيادة الدراجات الرباعية عبر البراري في الصحراء الشرقية. تأخذك هذه المغامرة إلى قلب المناظر الطبيعية التي تشبه سطح القمر والكثبان الذهبية الممتدة إلى ما لا نهاية، مع التوقف في مخيم بدوي أصيل للاستمتاع بشاي تقليدي واكتشاف أسلوب حياة عريق، بعيداً عن صخب السياحة."
     },
     {
-      "name": "Plongée à l’île Giftoun",
-      "sub_category": "Mer & Nature",
+      "name": "الغوص في جزيرة جفتون",
+      "sub_category": "بحر وطبيعة",
       "photo_url": "assets/hurgada/ile.jpg",
-      "description": "Véritable joyau de la mer Rouge, l'île Giftoun est un sanctuaire marin protégé aux eaux turquoise cristallines. En plongeant dans ses sites renommés, vous découvrirez des jardins de coraux multicolores d'une densité incroyable et une vie sous-marine foisonnante, allant des tortues marines aux bancs de poissons tropicaux exotiques dans un écosystème d'une beauté intacte.",
-      "mapsQuery": "Giftun Island Hurghada"
+      "description": "جوهرة حقيقية في البحر الأحمر، جزيرة جفتون هي محمية بحرية ذات مياه فيروزية صافية. عند الغوص في مواقعها الشهيرة، ستكتشف حدائق مرجانية ملونة ذات كثافة مذهلة، وحياة بحرية وفيرة، من السلاحف البحرية إلى أسراب الأسماك الاستوائية الغريبة في نظام بيئي ذي جمال أصيل."
     },
     {
-      "name": "La Marina d’Hurghada",
-      "sub_category": "Détente & Vie nocturne",
+      "name": "مارينا الغردقة",
+      "sub_category": "استرخاء وحياة ليلية",
       "photo_url": "assets/hurgada/marina.webp",
-      "description": "Symbole du renouveau moderne d'Hurghada, la marina est un lieu incontournable pour les amateurs de luxe et de douceur de vivre. Entre les yachts somptueux amarrés au port et les terrasses chics bordant le quai, c'est l'endroit idéal pour flâner en fin de journée, profiter de la brise marine, dîner dans des restaurants gastronomiques ou prolonger la soirée dans une ambiance élégante et animée.",
-      "mapsQuery": "Hurghada Marina"
+      "description": "رمز التجديد الحديث للغردقة، المارينا مكان لا بد من زيارته لمحبي الفخامة والرفاهية. بين اليخوت الفاخرة الراسية في الميناء والشرفات الأنيقة المطلة على الرصيف، هو المكان المثالي للتنزه في نهاية اليوم، والاستمتاع بنسيم البحر، وتناول العشاء في مطاعم راقية أو تمديد السهرة في أجواء أنيقة وحيوية."
     },
   ];
 
@@ -58,7 +55,6 @@ class _HurghadaPageState extends State<HurghadaPage> {
     _chargerFavorisLieux();
   }
 
-  // Charge les favoris depuis le stockage local
   Future<void> _chargerFavorisLieux() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -66,51 +62,55 @@ class _HurghadaPageState extends State<HurghadaPage> {
     });
   }
 
-  // Ajoute ou retire un lieu de la liste globale au format JSON[cite: 14]
   Future<void> _toggleFavoriLieu(Map<String, dynamic> item) async {
     final prefs = await SharedPreferences.getInstance();
     final String name = item['name'];
 
     setState(() {
-      bool existe = _favorisLieuxJson.any((jsonStr) => jsonDecode(jsonStr)['name'] == name);
-      if (existe) {
-        _favorisLieuxJson.removeWhere((jsonStr) => jsonDecode(jsonStr)['name'] == name);
+      // البحث عن الفهرس للتأكد من وجود العنصر مسبقاً أو عدم وجوده
+      int index = _favorisLieuxJson.indexWhere((jsonStr) {
+        try {
+          final decoded = jsonDecode(jsonStr);
+          return decoded['name'] == name;
+        } catch (e) {
+          return false;
+        }
+      });
+
+      if (index != -1) {
+        // إذا كان موجوداً، نقوم بحذفه باستخدام الفهرس الذي عثرنا عليه
+        _favorisLieuxJson.removeAt(index);
       } else {
-        // CORRECTION : On injecte explicitement la destination pour home.dart[cite: 14]
+        // إذا لم يكن موجوداً، نقوم بإنشاء نسخة وإضافة البيانات الإضافية ثم تشفيرها وحفظها
         Map<String, dynamic> itemModifie = Map<String, dynamic>.from(item);
-        itemModifie['region'] = "Mer Rouge";
+        itemModifie['region'] = "البحر الأحمر";
         itemModifie['sub_folder'] = "Hurghada";
-        itemModifie['ville'] = "Hurghada";
+        itemModifie['ville'] = "الغردقة";
 
         _favorisLieuxJson.add(jsonEncode(itemModifie));
       }
     });
+
+    // حفظ القائمة المحدثة في SharedPreferences
     await prefs.setStringList(_cleStockageLieux, _favorisLieuxJson);
   }
 
-  // Méthode sécurisée pour ouvrir l'application Google Maps
-  Future<void> _ouvrirMaps(String query) async {
-    final encodedQuery = Uri.encodeComponent(query);
-    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encodedQuery');
+  Future<void> _ouvrirGoogleMaps(String nomLieu) async {
+    final String query = Uri.encodeComponent('$nomLieu، الغردقة، مصر');
+    final Uri url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
 
     try {
-      bool launched = await launchUrl(
-        url,
-        mode: LaunchMode.externalApplication,
-      );
-      if (!launched) {
-        debugPrint('Impossible d\'ouvrir Google Maps');
-      }
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     } catch (e) {
-      debugPrint('Erreur ouverture Maps : $e');
+      debugPrint('Impossible d\'ouvrir la carte pour : $nomLieu -> $e');
     }
   }
 
   Color _getCategoryColor(String category) {
     switch (category) {
-      case "Activités": return Colors.redAccent;
-      case "Mer & Nature": return Colors.blueAccent;
-      case "Détente & Vie nocturne": return Colors.purpleAccent;
+      case "أنشطة": return Colors.redAccent;
+      case "بحر وطبيعة": return Colors.blueAccent;
+      case "استرخاء وحياة ليلية": return Colors.purpleAccent;
       default: return Colors.white;
     }
   }
@@ -128,35 +128,38 @@ class _HurghadaPageState extends State<HurghadaPage> {
       groupedData.putIfAbsent(item['sub_category'], () => []).add(item);
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF101010),
-      body: ScrollConfiguration(
-        behavior: WebScrollBehavior(),
-        child: CustomScrollView(
-          controller: _scrollController,
-          physics: const ClampingScrollPhysics(),
-          slivers: [
-            const SliverAppBar(
-              pinned: false,
-              backgroundColor: Color(0xFF101010),
-              title: Text("Hurghada", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              iconTheme: IconThemeData(color: Colors.white),
-              elevation: 0,
-            ),
-            ...groupedData.entries.map((entry) => SliverList(
-              delegate: SliverChildListDelegate([
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 25, 20, 5),
-                  child: Text(
-                    entry.key.toUpperCase(),
-                    style: TextStyle(color: _getCategoryColor(entry.key), fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+    return Directionality(
+      textDirection: TextDirection.rtl, // FORCE RTL
+      child: Scaffold(
+        backgroundColor: const Color(0xFF101010),
+        body: ScrollConfiguration(
+          behavior: WebScrollBehavior(),
+          child: CustomScrollView(
+            controller: _scrollController,
+            physics: const ClampingScrollPhysics(),
+            slivers: [
+              const SliverAppBar(
+                pinned: false,
+                backgroundColor: Color(0xFF101010),
+                title: Text("الغردقة", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                iconTheme: IconThemeData(color: Colors.white),
+                elevation: 0,
+              ),
+              ...groupedData.entries.map((entry) => SliverList(
+                delegate: SliverChildListDelegate([
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 25, 20, 5),
+                    child: Text(
+                      entry.key.toUpperCase(),
+                      style: TextStyle(color: _getCategoryColor(entry.key), fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                    ),
                   ),
-                ),
-                ...entry.value.map((item) => _buildDesignCard(item, _getCategoryColor(entry.key))),
-              ]),
-            )),
-            const SliverToBoxAdapter(child: SizedBox(height: 30)),
-          ],
+                  ...entry.value.map((item) => _buildDesignCard(item, _getCategoryColor(entry.key))),
+                ]),
+              )),
+              const SliverToBoxAdapter(child: SizedBox(height: 30)),
+            ],
+          ),
         ),
       ),
     );
@@ -164,7 +167,15 @@ class _HurghadaPageState extends State<HurghadaPage> {
 
   Widget _buildDesignCard(Map<String, dynamic> item, Color color) {
     final String lieuNom = item['name'] ?? '';
-    final bool isFav = _favorisLieuxJson.any((jsonStr) => jsonDecode(jsonStr)['name'] == lieuNom);
+
+    // تحقق آمن من حالة المفضلة لتجنب أي أخطاء أثناء فك التشفير
+    final bool isFav = _favorisLieuxJson.any((jsonStr) {
+      try {
+        return jsonDecode(jsonStr)['name'] == lieuNom;
+      } catch (e) {
+        return false;
+      }
+    });
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
@@ -172,11 +183,8 @@ class _HurghadaPageState extends State<HurghadaPage> {
         borderRadius: BorderRadius.circular(20),
         color: const Color(0xFF1E1E1E),
         boxShadow: [
-          // 1. Ombre portée principale très visible[cite: 14]
           BoxShadow(color: Colors.black.withOpacity(0.8), blurRadius: 20, spreadRadius: 4, offset: const Offset(0, 12)),
-          // 2. Halo coloré pour l'effet de reflet[cite: 14]
           BoxShadow(color: color.withOpacity(0.3), blurRadius: 30, offset: const Offset(0, 0)),
-          // 3. Liseré lumineux blanc pour le contraste maximal[cite: 14]
           BoxShadow(color: Colors.white.withOpacity(0.12), blurRadius: 0, spreadRadius: 1.5, offset: const Offset(0, 1.5)),
         ],
       ),
@@ -220,24 +228,28 @@ class _HurghadaPageState extends State<HurghadaPage> {
                 Text(item['sub_category'] ?? '', style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 10),
                 Text(item['description'] ?? '', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, height: 1.6)),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () => _ouvrirMaps(item['mapsQuery'] ?? "${item['name']} Hurghada"),
+                    onPressed: () => _ouvrirGoogleMaps(lieuNom),
+                    icon: const Icon(Icons.map_rounded, color: Colors.black87),
+                    label: const Text(
+                      "فتح في خريطة جوجل",
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: color,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: color == Colors.white ? const Color(0xFF57E1AD) : color,
+                      foregroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                       elevation: 0,
-                    ),
-                    icon: const Icon(Icons.navigation_outlined, size: 18),
-                    label: const Text(
-                      'Ouvrir dans Google Maps',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                   ),
                 ),
