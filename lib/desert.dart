@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert'; // Import essentiel pour la sérialisation JSON des favoris
-import 'package:url_launcher/url_launcher.dart'; // Import pour l'ouverture de Google Maps
+import 'package:url_launcher/url_launcher.dart';
 
-// --- CLASSE DE DÉFILEMENT WEB ---
-// Permet le clic-et-glisser avec la souris comme sur un navigateur web
+// --- 1. CLASSE DE DÉFILEMENT WEB ---
 class WebScrollBehavior extends MaterialScrollBehavior {
   @override
   Set<PointerDeviceKind> get dragDevices => {
@@ -15,6 +13,7 @@ class WebScrollBehavior extends MaterialScrollBehavior {
   };
 }
 
+// --- 2. PAGE PRINCIPALE (DÉSERTS) ---
 class DesertPage extends StatefulWidget {
   const DesertPage({super.key});
 
@@ -23,68 +22,117 @@ class DesertPage extends StatefulWidget {
 }
 
 class _DesertPageState extends State<DesertPage> {
-  // Contrôleur de défilement
   final ScrollController _scrollController = ScrollController();
+  String _lang = 'fr';
 
-  // Clé globale identique partagée avec home.dart et les autres pages (version française)
-  List<String> _favorisLieuxJson = [];
-  final String _cleStockageLieux = 'lieux_favoris_complets_fr';
+  // --- TRADUCTIONS DE L'INTERFACE ---
+  static const Map<String, Map<String, String>> _uiTranslations = {
+    'fr': {
+      'pageTitle': 'Déserts',
+      'mapsBtn': 'Ouvrir dans Google Maps',
+      'catDeserts': 'Les déserts : lieux à découvrir',
+    },
+    'en': {
+      'pageTitle': 'Deserts',
+      'mapsBtn': 'Open in Google Maps',
+      'catDeserts': 'Deserts: Places to discover',
+    },
+    'ar': {
+      'pageTitle': 'الصحاري',
+      'mapsBtn': 'الفتح في خرائط Google',
+      'catDeserts': 'الصحاري: أماكن للاكتشاف',
+    },
+  };
 
-  static const List<Map<String, dynamic>> _desertData = [
-    {
-      "name": "Désert Blanc",
-      "sub_category": "Les déserts : lieux à découvrir",
-      "photo_url": "assets/desert/blanc.jpg",
-      "description": "Observer les formations rocheuses blanches uniques, camper dans le désert et faire de la photographie paysagère.",
-      "mapsQuery": "Désert Blanc Égypte"
-    },
-    {
-      "name": "Désert Noir",
-      "sub_category": "Les déserts : lieux à découvrir",
-      "photo_url": "assets/desert/noir.webp",
-      "description": "Le désert Noir tire son nom des roches volcaniques noires qui couvrent ses collines. On peut y faire des excursions en 4×4, camper sous les étoiles et découvrir des paysages lunaires spectaculaires.",
-      "mapsQuery": "Désert Noir Égypte"
-    },
-  ];
+  // --- DONNÉES TRADUITES PAR LANGUE ---
+  static const Map<String, List<Map<String, dynamic>>> _localizedDesertData = {
+    'fr': [
+      {
+        "id": "desert_blanc",
+        "name": "Désert Blanc",
+        "sub_category_key": "catDeserts",
+        "sub_category": "Les déserts : lieux à découvrir",
+        "photo_url": "assets/desert/blanc.jpg",
+        "description": "Observer les formations rocheuses blanches uniques, camper dans le désert et faire de la photographie paysagère.",
+        "mapsQuery": "Désert Blanc Égypte"
+      },
+      {
+        "id": "desert_noir",
+        "name": "Désert Noir",
+        "sub_category_key": "catDeserts",
+        "sub_category": "Les déserts : lieux à découvrir",
+        "photo_url": "assets/desert/noir.webp",
+        "description": "Le désert Noir tire son nom des roches volcaniques noires qui couvrent ses collines. On peut y faire des excursions en 4×4, camper sous les étoiles et découvrir des paysages lunaires spectaculaires.",
+        "mapsQuery": "Désert Noir Égypte"
+      },
+    ],
+    'en': [
+      {
+        "id": "desert_blanc",
+        "name": "White Desert",
+        "sub_category_key": "catDeserts",
+        "sub_category": "Deserts: Places to discover",
+        "photo_url": "assets/desert/blanc.jpg",
+        "description": "Observe unique white rock formations, camp in the desert, and enjoy landscape photography.",
+        "mapsQuery": "White Desert Egypt"
+      },
+      {
+        "id": "desert_noir",
+        "name": "Black Desert",
+        "sub_category_key": "catDeserts",
+        "sub_category": "Deserts: Places to discover",
+        "photo_url": "assets/desert/noir.webp",
+        "description": "The Black Desert gets its name from the black volcanic rocks covering its hills. Visitors can enjoy 4x4 excursions, camp under the stars, and discover spectacular lunar landscapes.",
+        "mapsQuery": "Black Desert Egypt"
+      },
+    ],
+    'ar': [
+      {
+        "id": "desert_blanc",
+        "name": "الصحراء البيضاء",
+        "sub_category_key": "catDeserts",
+        "sub_category": "الصحاري: أماكن للاكتشاف",
+        "photo_url": "assets/desert/blanc.jpg",
+        "description": "مراقبة التشكيلات الصخرية البيضاء الفريدة، التخييم في الصحراء والتقاط صور للمناظر الطبيعية.",
+        "mapsQuery": "الصحراء البيضاء مصر"
+      },
+      {
+        "id": "desert_noir",
+        "name": "الصحراء السوداء",
+        "sub_category_key": "catDeserts",
+        "sub_category": "الصحاري: أماكن للاكتشاف",
+        "photo_url": "assets/desert/noir.webp",
+        "description": "تستمد الصحراء السوداء اسمها من الصخور البركانية السوداء التي تغطي تلالها. يمكن القيام برحلات الدفع الرباعي والتخييم تحت النجوم واكتشاف مناظر طبيعية تشبه سطح القمر.",
+        "mapsQuery": "الصحراء السوداء مصر"
+      },
+    ],
+  };
 
   @override
   void initState() {
     super.initState();
-    _chargerFavorisLieux();
+    _chargerLangue();
   }
 
-  // Charge les favoris depuis le stockage local
-  Future<void> _chargerFavorisLieux() async {
+  Future<void> _chargerLangue() async {
     final prefs = await SharedPreferences.getInstance();
+    final String? langSauvegardee = prefs.getString('selected_language');
     setState(() {
-      _favorisLieuxJson = prefs.getStringList(_cleStockageLieux) ?? [];
-    });
-  }
-
-  // Ajoute ou retire un lieu de la liste globale au format JSON
-  Future<void> _toggleFavoriLieu(Map<String, dynamic> item) async {
-    final prefs = await SharedPreferences.getInstance();
-    final String name = item['name'];
-
-    setState(() {
-      bool existe = _favorisLieuxJson.any((jsonStr) => jsonDecode(jsonStr)['name'] == name);
-      if (existe) {
-        _favorisLieuxJson.removeWhere((jsonStr) => jsonDecode(jsonStr)['name'] == name);
-      } else {
-        // On crée une copie pour y injecter explicitement la localisation
-        // de cette manière home.dart sait immédiatement qu'il s'agit des Déserts !
-        final Map<String, dynamic> itemAAjouter = Map<String, dynamic>.from(item);
-        itemAAjouter['ville'] = 'Déserts';
-        itemAAjouter['region'] = 'Déserts';
-        itemAAjouter['sub_folder'] = 'Desert';
-
-        _favorisLieuxJson.add(jsonEncode(itemAAjouter));
+      if (langSauvegardee != null && _uiTranslations.containsKey(langSauvegardee)) {
+        _lang = langSauvegardee;
       }
     });
-    await prefs.setStringList(_cleStockageLieux, _favorisLieuxJson);
   }
 
-  // Méthode sécurisée pour ouvrir l'application Google Maps
+  Future<void> _changerLangue(String nouvelleLangue) async {
+    if (_lang == nouvelleLangue) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selected_language', nouvelleLangue);
+    setState(() {
+      _lang = nouvelleLangue;
+    });
+  }
+
   Future<void> _ouvrirMaps(String query) async {
     final encodedQuery = Uri.encodeComponent(query);
     final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encodedQuery');
@@ -102,6 +150,37 @@ class _DesertPageState extends State<DesertPage> {
     }
   }
 
+  String _getTranslatedText(String key) {
+    return _uiTranslations[_lang]?[key] ?? _uiTranslations['fr']![key] ?? key;
+  }
+
+  Widget _buildLangButton(String label, String langCode) {
+    final bool isSelected = _lang == langCode;
+    return GestureDetector(
+      onTap: () => _changerLangue(langCode),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFD4AF37) : const Color(0xFF222222),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? const Color(0xFFD4AF37) : Colors.white24,
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.black : Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -110,40 +189,72 @@ class _DesertPageState extends State<DesertPage> {
 
   @override
   Widget build(BuildContext context) {
+    final List<Map<String, dynamic>> currentData = _localizedDesertData[_lang] ?? _localizedDesertData['fr']!;
+    final bool isRtl = _lang == 'ar';
+
     final Map<String, List<Map<String, dynamic>>> groupedData = {};
-    for (var item in _desertData) {
-      groupedData.putIfAbsent(item['sub_category'], () => []).add(item);
+    for (var item in currentData) {
+      String catKey = item['sub_category_key'] ?? 'catDeserts';
+      groupedData.putIfAbsent(catKey, () => []).add(item);
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF101010),
-      body: ScrollConfiguration(
-        behavior: WebScrollBehavior(),
-        child: CustomScrollView(
-          controller: _scrollController,
-          physics: const ClampingScrollPhysics(), // Défilement rigide type web
-          slivers: [
-            const SliverAppBar(
-              pinned: false, // Le titre défile avec le reste
-              backgroundColor: Color(0xFF101010),
-              title: Text("Déserts", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              iconTheme: IconThemeData(color: Colors.white),
-              elevation: 0,
-            ),
-            ...groupedData.entries.map((entry) => SliverList(
-              delegate: SliverChildListDelegate([
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 25, 20, 5),
-                  child: Text(
-                    entry.key.toUpperCase(),
-                    style: const TextStyle(color: Colors.orangeAccent, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2),
-                  ),
+    return Directionality(
+      textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: const Color(0xFF101010),
+        body: ScrollConfiguration(
+          behavior: WebScrollBehavior(),
+          child: CustomScrollView(
+            controller: _scrollController,
+            physics: const ClampingScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                pinned: false,
+                backgroundColor: const Color(0xFF101010),
+                title: Text(
+                  _getTranslatedText('pageTitle'),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
-                ...entry.value.map((item) => _buildDesignCard(item, Colors.orangeAccent)),
-              ]),
-            )),
-            const SliverToBoxAdapter(child: SizedBox(height: 30)),
-          ],
+                iconTheme: const IconThemeData(color: Colors.white),
+                elevation: 0,
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Row(
+                      children: [
+                        _buildLangButton('FR', 'fr'),
+                        _buildLangButton('EN', 'en'),
+                        _buildLangButton('AR', 'ar'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              ...groupedData.entries.map((entry) {
+                String catKey = entry.key;
+                String translatedCatTitle = _getTranslatedText(catKey);
+
+                return SliverList(
+                  delegate: SliverChildListDelegate([
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 25, 20, 5),
+                      child: Text(
+                        translatedCatTitle.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.orangeAccent,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                    ...entry.value.map((item) => _buildDesignCard(item, Colors.orangeAccent)),
+                  ]),
+                );
+              }),
+              const SliverToBoxAdapter(child: SizedBox(height: 30)),
+            ],
+          ),
         ),
       ),
     );
@@ -151,8 +262,6 @@ class _DesertPageState extends State<DesertPage> {
 
   Widget _buildDesignCard(Map<String, dynamic> item, Color color) {
     final String lieuNom = item['name'] ?? '';
-    // Vérification de la présence du lieu dans l'état local global
-    final bool isFav = _favorisLieuxJson.any((jsonStr) => jsonDecode(jsonStr)['name'] == lieuNom);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
@@ -160,20 +269,17 @@ class _DesertPageState extends State<DesertPage> {
         borderRadius: BorderRadius.circular(20),
         color: const Color(0xFF1E1E1E),
         boxShadow: [
-          // 1. Ombre portée principale très visible
           BoxShadow(
             color: Colors.black.withOpacity(0.8),
             blurRadius: 20,
             spreadRadius: 4,
             offset: const Offset(0, 12),
           ),
-          // 2. Halo coloré pour l'effet de reflet
           BoxShadow(
             color: color.withOpacity(0.3),
             blurRadius: 30,
             offset: const Offset(0, 0),
           ),
-          // 3. Liseré lumineux blanc pour le contraste maximal
           BoxShadow(
             color: Colors.white.withOpacity(0.12),
             blurRadius: 0,
@@ -203,27 +309,23 @@ class _DesertPageState extends State<DesertPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        lieuNom,
-                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                        color: isFav ? Colors.redAccent : Colors.white54,
-                        size: 26,
-                      ),
-                      onPressed: () => _toggleFavoriLieu(item),
-                    ),
-                  ],
+                Text(
+                  lieuNom,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 10),
-                Text(item['description'] ?? '', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, height: 1.6)),
+                Text(
+                  item['description'] ?? '',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 15,
+                    height: 1.6,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
@@ -239,9 +341,9 @@ class _DesertPageState extends State<DesertPage> {
                       elevation: 0,
                     ),
                     icon: const Icon(Icons.navigation_outlined, size: 18),
-                    label: const Text(
-                      'Ouvrir dans Google Maps',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    label: Text(
+                      _getTranslatedText('mapsBtn'),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                   ),
                 ),

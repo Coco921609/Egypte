@@ -1,4 +1,4 @@
-name: Egypte
+name: egypte
 description: "Voyagez en Égypte en toute sérénité."
 publish_to: 'none'
 
@@ -20,9 +20,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  flutter_launcher_icons: "^0.13.1" # Mettez juste le nom et la version ici
+  flutter_launcher_icons: "^0.13.1"
 
-# La configuration se place ici, tout en bas, à la racine du fichier
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
@@ -30,8 +29,8 @@ flutter_launcher_icons:
   web:
     generate: true
     image_path: "assets/caire/tour.jpg"
-    background_color: "#161616"
-    theme_color: "#D4AF37"
+    background_color: "#0E131F"
+    theme_color: "#E5C158"
   windows:
     generate: true
     image_path: "assets/caire/tour.jpg"
@@ -53,3 +52,7 @@ flutter:
     - assets/sharm/
     - assets/hurgada/
     - assets/plat/
+    - assets/1.jpg
+    - assets/2.jpg
+    - assets/3.jpg
+    - assets/23.jpeg

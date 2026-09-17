@@ -3,9 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 
-// --- CONFIGURATION WEB ---
+// --- CONFIGURATION WEB ET DÉFILEMENT ---
 class WebScrollBehavior extends MaterialScrollBehavior {
   @override
   Set<PointerDeviceKind> get dragDevices => {
@@ -21,15 +20,20 @@ class WebScrollBehavior extends MaterialScrollBehavior {
 }
 
 class Plat {
-  final String name, sub_category, photo_url, description, ville, recette;
-  final List<String> tags;
+  final String id;
+  final String photo_url;
+  final Map<String, String> name;
+  final Map<String, String> ville;
+  final Map<String, String> description;
+  final Map<String, String> recette;
+  final Map<String, List<String>> tags;
 
   Plat({
-    required this.name,
-    required this.sub_category,
+    required this.id,
     required this.photo_url,
-    required this.description,
+    required this.name,
     required this.ville,
+    required this.description,
     required this.recette,
     required this.tags,
   });
@@ -44,174 +48,458 @@ class GastronomiePage extends StatefulWidget {
 
 class _GastronomiePageState extends State<GastronomiePage> {
   final ScrollController _scrollController = ScrollController();
-  List<String> _favorisLieuxJson = [];
-  final String _cleStockageLieux = 'lieux_favoris_complets_fr';
+  String _lang = 'fr';
 
-  // Palette de couleurs Premium harmonisée avec Home
+  // Palette de couleurs Premium harmonisée
   final Color _bgDark = const Color(0xFF090A0F);
   final Color _cardDark = const Color(0xFF14151B);
-  final Color _accentPink = const Color(0xFFFD79A8); // Rose épice signature pour la gastronomie
+  final Color _accentPink = const Color(0xFFFD79A8);
 
+  // --- TRADUCTIONS DE L'INTERFACE ---
+  static const Map<String, Map<String, String>> _uiTranslations = {
+    'fr': {
+      'pageTitle': 'Gastronomie égyptienne',
+      'recipeTitle': 'RECETTE TRADITIONNELLE',
+    },
+    'en': {
+      'pageTitle': 'Egyptian Gastronomy',
+      'recipeTitle': 'TRADITIONAL RECIPE',
+    },
+    'ar': {
+      'pageTitle': 'المأكولات المصرية',
+      'recipeTitle': 'وصفة تقليدية',
+    },
+  };
+
+  // --- DONNÉES DES PLATS TRADUITES DANS LES 3 LANGUES ---
   final List<Plat> tous_les_plats = [
-    Plat(name: "Koshari", sub_category: "Gastronomie", photo_url: "assets/plat/k.jpg", ville: "Le Caire", description: "Le plat national cairote, mélange de riz, lentilles, macaronis et pois chiches.", recette: "Mélangez riz, lentilles, macaronis et pois chiches, puis nappez de sauce tomate et oignons frits.", tags: ["Végétarien", "Populaire", "Rue"]),
-    Plat(name: "Ful medames", sub_category: "Gastronomie", photo_url: "assets/plat/f.jpg", ville: "Le Caire", description: "Purée de fèves mijotées aux épices, petit-déjeuner national traditionnel.", recette: "Mijotez les fèves, puis assaisonnez avec huile d'olive, ail, citron et cumin.", tags: ["Petit-déjeuner", "Traditionnel", "Fèves"]),
-    Plat(name: "Taameya", sub_category: "Gastronomie", photo_url: "assets/plat/t.webp", ville: "Le Caire", description: "Falafels aux fèves fraîches et herbes, croustillants à l'extérieur.", recette: "Mixez fèves, coriandre et épices, formez des galettes et faites frire.", tags: ["Falafel", "Rue", "Sandwich"]),
-    Plat(name: "Pain baladi", sub_category: "Gastronomie", photo_url: "assets/plat/p.jpg", ville: "Le Caire", description: "Pain traditionnel égyptien cuit à haute température.", recette: "Pétrissez la farine complète, façonnez des disques et cuisez au four très chaud.", tags: ["Pain", "Traditionnel", "Incontournable"]),
-    Plat(name: "Pigeon grillé", sub_category: "Gastronomie", photo_url: "assets/plat/g.webp", ville: "Louxor", description: "Pigeon farci au freekeh, un blé vert torréfié.", recette: "Farcissez le pigeon de freekeh et rôtissez jusqu'à obtenir une peau dorée.", tags: ["Viande", "Festif", "Spécialité"]),
-    Plat(name: "Kebda", sub_category: "Gastronomie", photo_url: "assets/plat/2.webp", ville: "Alexandrie", description: "Foie de bœuf mariné aux épices intenses, saisi à feu vif.", recette: "Marinez le foie, puis saisissez sur une plancha brûlante avec du piment.", tags: ["Foie", "Épicé", "Rue"]),
-    Plat(name: "Om ali", sub_category: "Gastronomie", photo_url: "assets/plat/9.jpg", ville: "Le Caire", description: "Pudding chaud au feuilletage, lait, noix de coco et pistaches.", recette: "Trempez le feuilletage dans du lait sucré et gratinez au four avec des noix.", tags: ["Dessert", "Chaud", "National"]),
-    Plat(name: "Basbousa", sub_category: "Gastronomie", photo_url: "assets/plat/4.jpg", ville: "Assouan", description: "Gâteau de semoule moelleux imbibé de sirop parfumé.", recette: "Cuisez la semoule au four et imbibez de sirop à la fleur d'oranger.", tags: ["Dessert", "Semoule", "Sucré"]),
-    Plat(name: "Konafa", sub_category: "Gastronomie", photo_url: "assets/plat/2.jpg", ville: "Le Caire", description: "Vermicelles croustillants au beurre, garnis de crème ou fromage.", recette: "Dorez les vermicelles, garnissez de crème et nappez de sirop parfumé.", tags: ["Dessert", "Croustillant", "Fromage"]),
+    Plat(
+      id: "koshari",
+      photo_url: "assets/plat/k.jpg",
+      name: {
+        'fr': "Koshari",
+        'en': "Koshari",
+        'ar': "كشري",
+      },
+      ville: {
+        'fr': "Le Caire",
+        'en': "Cairo",
+        'ar': "القاهرة",
+      },
+      description: {
+        'fr': "Le plat national cairote, mélange de riz, lentilles, macaronis et pois chiches.",
+        'en': "Cairo's national dish, a mix of rice, lentils, macaroni, and chickpeas.",
+        'ar': "الطبق الوطني القاهري، مزيج من الأرز والعدس والمعكرونة والحمص.",
+      },
+      recette: {
+        'fr': "Mélangez riz, lentilles, macaronis et pois chiches, puis nappez de sauce tomate et oignons frits.",
+        'en': "Mix rice, lentils, macaroni, and chickpeas, then top with tomato sauce and fried onions.",
+        'ar': "اخلط الأرز والعدس والمعكرونة والحمص، ثم غطِّ المزيج بصلصة الطماطم والبصل المقرمش.",
+      },
+      tags: {
+        'fr': ["Végétarien", "Populaire", "Rue"],
+        'en': ["Vegetarian", "Popular", "Street food"],
+        'ar': ["نباتي", "شعبي", "طعام الشارع"],
+      },
+    ),
+    Plat(
+      id: "ful_medames",
+      photo_url: "assets/plat/f.jpg",
+      name: {
+        'fr': "Ful medames",
+        'en': "Ful Medames",
+        'ar': "فول مدمس",
+      },
+      ville: {
+        'fr': "Le Caire",
+        'en': "Cairo",
+        'ar': "القاهرة",
+      },
+      description: {
+        'fr': "Purée de fèves mijotées aux épices, petit-déjeuner national traditionnel.",
+        'en': "Slow-cooked fava bean mash with spices, a traditional national breakfast.",
+        'ar': "مهروس الفول المطهو بطريقة هادئة مع التوابل، الإفطار الوطني التقليدي.",
+      },
+      recette: {
+        'fr': "Mijotez les fèves, puis assaisonnez avec huile d'olive, ail, citron et cumin.",
+        'en': "Simmer the fava beans, then season with olive oil, garlic, lemon, and cumin.",
+        'ar': "اطهِ الفول على نار هادئة، ثم تبل بزيت الزيتون والثوم والليمون والكمون.",
+      },
+      tags: {
+        'fr': ["Petit-déjeuner", "Traditionnel", "Fèves"],
+        'en': ["Breakfast", "Traditional", "Fava beans"],
+        'ar': ["إفطار", "تقليدي", "فول"],
+      },
+    ),
+    Plat(
+      id: "taameya",
+      photo_url: "assets/plat/t.webp",
+      name: {
+        'fr': "Taameya",
+        'en': "Taameya",
+        'ar': "طعمية",
+      },
+      ville: {
+        'fr': "Le Caire",
+        'en': "Cairo",
+        'ar': "القاهرة",
+      },
+      description: {
+        'fr': "Falafels aux fèves fraîches et herbes, croustillants à l'extérieur.",
+        'en': "Egyptian falafel made with fresh fava beans and herbs, crispy on the outside.",
+        'ar': "فلافل بمهروس الفول والأعشاب الطازجة، مقرمشة من الخارج.",
+      },
+      recette: {
+        'fr': "Mixez fèves, coriandre et épices, formez des galettes et faites frire.",
+        'en': "Blend fava beans, coriander, and spices, shape into patties, and deep fry.",
+        'ar': "اخلط الفول والكزبرة والتوابل، شكل أقراصاً واقلها في الزيت.",
+      },
+      tags: {
+        'fr': ["Falafel", "Rue", "Sandwich"],
+        'en': ["Falafel", "Street food", "Sandwich"],
+        'ar': ["فلافل", "طعام الشارع", "سندويش"],
+      },
+    ),
+    Plat(
+      id: "pain_baladi",
+      photo_url: "assets/plat/p.jpg",
+      name: {
+        'fr': "Pain baladi",
+        'en': "Baladi Bread",
+        'ar': "عيش بلدي",
+      },
+      ville: {
+        'fr': "Le Caire",
+        'en': "Cairo",
+        'ar': "القاهرة",
+      },
+      description: {
+        'fr': "Pain traditionnel égyptien cuit à haute température.",
+        'en': "Traditional Egyptian flatbread baked at very high temperatures.",
+        'ar': "الخبز المصري التقليدي المخبوز في درجات حرارة عالية.",
+      },
+      recette: {
+        'fr': "Pétrissez la farine complète, façonnez des disques et cuisez au four très chaud.",
+        'en': "Knead whole wheat flour, shape into discs, and bake in an extremely hot oven.",
+        'ar': "اعجن الدقيق الكامل، شكل أقراصاً واخبزها في فرن شديد الحرارة.",
+      },
+      tags: {
+        'fr': ["Pain", "Traditionnel", "Incontournable"],
+        'en': ["Bread", "Traditional", "Essential"],
+        'ar': ["خبز", "تقليدي", "أساسي"],
+      },
+    ),
+    Plat(
+      id: "pigeon_grille",
+      photo_url: "assets/plat/g.webp",
+      name: {
+        'fr': "Pigeon grillé",
+        'en': "Stuffed Pigeon",
+        'ar': "حمام محشي",
+      },
+      ville: {
+        'fr': "Louxor",
+        'en': "Luxor",
+        'ar': "الأقصر",
+      },
+      description: {
+        'fr': "Pigeon farci au freekeh, un blé vert torréfié.",
+        'en': "Stuffed pigeon with freekeh, a roasted green wheat.",
+        'ar': "حمام محشو بالفريك، وهو قمح أخضر محمّص.",
+      },
+      recette: {
+        'fr': "Farcissez le pigeon de freekeh et rôtissez jusqu'à obtenir une peau dorée.",
+        'en': "Stuff the pigeon with freekeh and roast until the skin turns golden brown.",
+        'ar': "احشُ الحمام بالفريك واشوهِ حتى يكتسب الجلد لوناً ذهبياً.",
+      },
+      tags: {
+        'fr': ["Viande", "Festif", "Spécialité"],
+        'en': ["Meat", "Festive", "Specialty"],
+        'ar': ["لحوم", "احتفالي", "خاصية"],
+      },
+    ),
+    Plat(
+      id: "kebda",
+      photo_url: "assets/plat/2.webp",
+      name: {
+        'fr': "Kebda",
+        'en': "Alexandrian Kebda",
+        'ar': "كبدة اسكندراني",
+      },
+      ville: {
+        'fr': "Alexandrie",
+        'en': "Alexandria",
+        'ar': "الإسكندرية",
+      },
+      description: {
+        'fr': "Foie de bœuf mariné aux épices intenses, saisi à feu vif.",
+        'en': "Beef liver marinated with intense spices, seared over high heat.",
+        'ar': "كبدة بقر متبلة بتوابل قوية، ومطهوة على نار عالية.",
+      },
+      recette: {
+        'fr': "Marinez le foie, puis saisissez sur une plancha brûlante avec du piment.",
+        'en': "Marinate the liver, then sear on a hot griddle with chili peppers.",
+        'ar': "تبل الكبدة ثم شوّحها على جريل ساخن مع الفلفل الحار.",
+      },
+      tags: {
+        'fr': ["Foie", "Épicé", "Rue"],
+        'en': ["Liver", "Spicy", "Street food"],
+        'ar': ["كبدة", "حار", "طعام الشارع"],
+      },
+    ),
+    Plat(
+      id: "om_ali",
+      photo_url: "assets/plat/9.jpg",
+      name: {
+        'fr': "Om ali",
+        'en': "Om Ali",
+        'ar': "أم علي",
+      },
+      ville: {
+        'fr': "Le Caire",
+        'en': "Cairo",
+        'ar': "القاهرة",
+      },
+      description: {
+        'fr': "Pudding chaud au feuilletage, lait, noix de coco et pistaches.",
+        'en': "Warm pastry pudding with sweet milk, coconut, and pistachios.",
+        'ar': "حلوى المخبوزات الدافئة مع الحليب المحلى والمكسرات وجوز الهند.",
+      },
+      recette: {
+        'fr': "Trempez le feuilletage dans du lait sucré et gratinez au four avec des noix.",
+        'en': "Soak puff pastry in sweetened milk and bake in the oven with nuts.",
+        'ar': "انقع الرقائق في الحليب المحلى واخبزها في الفرن مع المكسرات.",
+      },
+      tags: {
+        'fr': ["Dessert", "Chaud", "National"],
+        'en': ["Dessert", "Warm", "National"],
+        'ar': ["حلويات", "دافئ", "وطني"],
+      },
+    ),
+    Plat(
+      id: "basbousa",
+      photo_url: "assets/plat/4.jpg",
+      name: {
+        'fr': "Basbousa",
+        'en': "Basbousa",
+        'ar': "بسبوسة",
+      },
+      ville: {
+        'fr': "Assouan",
+        'en': "Aswan",
+        'ar': "أسوان",
+      },
+      description: {
+        'fr': "Gâteau de semoule moelleux imbibé de sirop parfumé.",
+        'en': "Soft semolina cake soaked in aromatic syrup.",
+        'ar': "كعكة السميد الطرية المنقوعة في الشربات المعطر.",
+      },
+      recette: {
+        'fr': "Cuisez la semoule au four et imbibez de sirop à la fleur d'oranger.",
+        'en': "Bake the semolina cake and soak thoroughly with orange blossom syrup.",
+        'ar': "اخبز خليط السميد وانقعه بالشربات المعطر بماء الزهر.",
+      },
+      tags: {
+        'fr': ["Dessert", "Semoule", "Sucré"],
+        'en': ["Dessert", "Semolina", "Sweet"],
+        'ar': ["حلويات", "سميد", "حلو"],
+      },
+    ),
+    Plat(
+      id: "konafa",
+      photo_url: "assets/plat/2.jpg",
+      name: {
+        'fr': "Konafa",
+        'en': "Kunafa",
+        'ar': "كنافة",
+      },
+      ville: {
+        'fr': "Le Caire",
+        'en': "Cairo",
+        'ar': "القاهرة",
+      },
+      description: {
+        'fr': "Vermicelles croustillants au beurre, garnis de crème ou fromage.",
+        'en': "Crispy buttered pastry threads filled with cream or cheese.",
+        'ar': "شعيرية معجونة بالزبدة مقرمشة ومحشوة بالكريمة أو الجبن.",
+      },
+      recette: {
+        'fr': "Dorez les vermicelles, garnissez de crème et nappez de sirop parfumé.",
+        'en': "Brown the pastry threads, fill with cream, and drizzle with scented syrup.",
+        'ar': "حمر الشعيرية واحشُها بالكريمة ثم اسقها بالشربات المعطر.",
+      },
+      tags: {
+        'fr': ["Dessert", "Croustillant", "Fromage"],
+        'en': ["Dessert", "Crispy", "Cheese"],
+        'ar': ["حلويات", "مقرمش", "جبن"],
+      },
+    ),
   ];
 
   @override
   void initState() {
     super.initState();
-    _chargerFavoris();
+    _chargerLangue();
   }
 
-  Future<void> _chargerFavoris() async {
+  Future<void> _chargerLangue() async {
     final prefs = await SharedPreferences.getInstance();
+    final String? langSauvegardee = prefs.getString('selected_language');
+    if (langSauvegardee != null && _uiTranslations.containsKey(langSauvegardee)) {
+      setState(() {
+        _lang = langSauvegardee;
+      });
+    }
+  }
+
+  Future<void> _changerLangue(String nouvelleLangue) async {
+    if (_lang == nouvelleLangue) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selected_language', nouvelleLangue);
     setState(() {
-      _favorisLieuxJson = prefs.getStringList(_cleStockageLieux) ?? [];
+      _lang = nouvelleLangue;
     });
   }
 
-  Future<void> _toggleFavori(Plat plat) async {
-    final prefs = await SharedPreferences.getInstance();
-    bool existe = false;
-    int indexTrouve = -1;
-
-    for (int i = 0; i < _favorisLieuxJson.length; i++) {
-      try {
-        final map = jsonDecode(_favorisLieuxJson[i]);
-        if (map['name'] == plat.name) {
-          existe = true;
-          indexTrouve = i;
-          break;
-        }
-      } catch (e) {
-        // Ignorer
-      }
-    }
-
-    setState(() {
-      if (existe) {
-        _favorisLieuxJson.removeAt(indexTrouve);
-      } else {
-        // AJOUT DES CLÉS INCONTOURNABLES pour assurer le classement automatique dans Home
-        final Map<String, dynamic> platMap = {
-          'name': plat.name,
-          'sub_category': "Gastronomie",
-          'photo_url': plat.photo_url,
-          'description': plat.description,
-          'ville': plat.ville,
-          'recette': plat.recette,
-          'region': "Infos Pratiques", // Pour cibler le dossier principal de votre Home
-          'sub_folder': "Gastronomie", // Pour cibler le sous-dossier de votre Home
-        };
-        _favorisLieuxJson.add(jsonEncode(platMap));
-      }
-    });
-
-    await prefs.setStringList(_cleStockageLieux, _favorisLieuxJson);
+  String _getTranslatedText(String key) {
+    return _uiTranslations[_lang]?[key] ?? _uiTranslations['fr']![key] ?? key;
   }
 
-  bool _isFavori(String name) {
-    for (var jsonStr in _favorisLieuxJson) {
-      try {
-        if (jsonDecode(jsonStr)['name'] == name) return true;
-      } catch (e) {
-        // Ignorer
-      }
-    }
-    return false;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
-      child: Scaffold(
-        backgroundColor: _bgDark,
-        body: ScrollConfiguration(
-          behavior: WebScrollBehavior(),
-          child: CustomScrollView(
-            controller: _scrollController,
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              // --- BARRE D'APPUI CHIC & ÉPURÉE ---
-              SliverAppBar(
-                pinned: false, // Comportement défilement site web
-                stretch: true,
-                backgroundColor: _bgDark.withOpacity(0.9),
-                elevation: 0,
-                leading: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: _cardDark,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white12),
-                      ),
-                      child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 14),
-                    ),
-                  ),
-                ),
-                title: Text(
-                  "Gastronomie égyptienne",
-                  style: GoogleFonts.playfairDisplay(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
-                ),
-              ),
-
-              // --- LISTE DES PLATS ---
-              SliverPadding(
-                padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 40),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                        (context, index) => _build_plat_card(tous_les_plats[index]),
-                    childCount: tous_les_plats.length,
-                  ),
-                ),
-              ),
-            ],
+  Widget _buildLangButton(String label, String langCode) {
+    final bool isSelected = _lang == langCode;
+    return GestureDetector(
+      onTap: () => _changerLangue(langCode),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        decoration: BoxDecoration(
+          color: isSelected ? _accentPink : _cardDark,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? _accentPink : Colors.white24,
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.black : Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
     );
   }
 
-  // --- CARTE DE PLAT GASTRONOMIQUE PREMIUM AVEC EFFET HALO UNDERGLOW ---
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isRtl = _lang == 'ar';
+
+    return Directionality(
+      textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light,
+        child: Scaffold(
+          backgroundColor: _bgDark,
+          body: ScrollConfiguration(
+            behavior: WebScrollBehavior(),
+            child: CustomScrollView(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                // --- BARRE D'APPUI DEFILEMENT SITE WEB ---
+                SliverAppBar(
+                  pinned: false, // Défile avec l'intégralité de la page
+                  stretch: true,
+                  backgroundColor: _bgDark.withOpacity(0.9),
+                  elevation: 0,
+                  leading: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: _cardDark,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 14),
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    _getTranslatedText('pageTitle'),
+                    style: GoogleFonts.playfairDisplay(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                  actions: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Row(
+                        children: [
+                          _buildLangButton('FR', 'fr'),
+                          _buildLangButton('EN', 'en'),
+                          _buildLangButton('AR', 'ar'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                // --- LISTE DES PLATS ---
+                SliverPadding(
+                  padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 40),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                          (context, index) => _build_plat_card(tous_les_plats[index]),
+                      childCount: tous_les_plats.length,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- CARTE DE PLAT GASTRONOMIQUE PREMIUM AVEC HALO UNDERGLOW ---
   Widget _build_plat_card(Plat plat) {
-    final bool isFav = _isFavori(plat.name);
+    final String platNom = plat.name[_lang] ?? plat.name['fr']!;
+    final String platVille = plat.ville[_lang] ?? plat.ville['fr']!;
+    final String platDesc = plat.description[_lang] ?? plat.description['fr']!;
+    final String platRecette = plat.recette[_lang] ?? plat.recette['fr']!;
+    final List<String> platTags = plat.tags[_lang] ?? plat.tags['fr']!;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 28),
       decoration: BoxDecoration(
         color: _cardDark,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _accentPink.withOpacity(0.18), width: 1.2), // Liseré rose délicat
+        border: Border.all(color: _accentPink.withOpacity(0.18), width: 1.2),
         boxShadow: [
-          // 1. Ombre noire de fond (profondeur)
           BoxShadow(
             color: Colors.black.withOpacity(0.6),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
-          // 2. Reflet lumineux coloré proche
           BoxShadow(
             color: _accentPink.withOpacity(0.22),
             blurRadius: 12,
             spreadRadius: -2,
             offset: const Offset(0, 4),
           ),
-          // 3. Large halo d'ambiance rose
           BoxShadow(
             color: _accentPink.withOpacity(0.1),
             blurRadius: 36,
@@ -225,7 +513,7 @@ class _GastronomiePageState extends State<GastronomiePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image (sans le badge par-dessus)
+            // Image
             Image.asset(
               plat.photo_url,
               height: 200,
@@ -239,7 +527,7 @@ class _GastronomiePageState extends State<GastronomiePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- VILLE DÉPLACÉE ICI (APRÈS L'IMAGE) ---
+                  // Badge de la Ville
                   Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -254,7 +542,7 @@ class _GastronomiePageState extends State<GastronomiePage> {
                         Icon(Icons.location_on_rounded, color: _accentPink, size: 12),
                         const SizedBox(width: 4),
                         Text(
-                          plat.ville.toUpperCase(),
+                          platVille.toUpperCase(),
                           style: GoogleFonts.montserrat(
                             color: _accentPink,
                             fontSize: 10,
@@ -266,40 +554,18 @@ class _GastronomiePageState extends State<GastronomiePage> {
                     ),
                   ),
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          plat.name,
-                          style: GoogleFonts.playfairDisplay(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () => _toggleFavori(plat),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: isFav ? Colors.redAccent.withOpacity(0.12) : Colors.white.withOpacity(0.04),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                            color: isFav ? Colors.redAccent : Colors.white38,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ],
+                  // Nom du plat
+                  Text(
+                    platNom,
+                    style: GoogleFonts.playfairDisplay(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    plat.description,
+                    platDesc,
                     style: GoogleFonts.montserrat(
                       color: Colors.white54,
                       fontSize: 12,
@@ -321,7 +587,7 @@ class _GastronomiePageState extends State<GastronomiePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "RECETTE TRADITIONNELLE",
+                          _getTranslatedText('recipeTitle'),
                           style: GoogleFonts.montserrat(
                             color: _accentPink,
                             fontWeight: FontWeight.bold,
@@ -331,7 +597,7 @@ class _GastronomiePageState extends State<GastronomiePage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          plat.recette,
+                          platRecette,
                           style: GoogleFonts.montserrat(
                             color: Colors.white60,
                             fontSize: 13,
@@ -347,7 +613,7 @@ class _GastronomiePageState extends State<GastronomiePage> {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: plat.tags.map((tag) => Container(
+                    children: platTags.map((tag) => Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.05),
