@@ -385,15 +385,18 @@ class _HieroglyphicsPageState extends State<HieroglyphicsPage> {
                   ),
                 ),
                 titleSpacing: 8,
-                title: Text(
-                  _getTranslatedText('pageTitle').toLowerCase(),
-                  maxLines: 2,
-                  overflow: TextOverflow.visible,
-                  style: GoogleFonts.montserrat(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    letterSpacing: 0.8,
+                title: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: isRtl ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Text(
+                    _getTranslatedText('pageTitle').toLowerCase(),
+                    maxLines: 1,
+                    style: GoogleFonts.montserrat(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      letterSpacing: 0.8,
+                    ),
                   ),
                 ),
                 actions: [
@@ -510,14 +513,16 @@ class _HieroglyphicsPageState extends State<HieroglyphicsPage> {
             ),
           ),
           const SizedBox(height: 6),
-          Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.playfairDisplay(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              name,
+              maxLines: 1,
+              style: GoogleFonts.playfairDisplay(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           const SizedBox(height: 2),

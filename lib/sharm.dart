@@ -412,9 +412,13 @@ class _SharmElSheikhPageState extends State<SharmElSheikhPage> {
               SliverAppBar(
                 pinned: false,
                 backgroundColor: const Color(0xFF101010),
-                title: Text(
-                  _getTranslatedText('pageTitle'),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                title: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: isRtl ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Text(
+                    _getTranslatedText('pageTitle'),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
                 ),
                 iconTheme: const IconThemeData(color: Colors.white),
                 elevation: 0,

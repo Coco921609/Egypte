@@ -399,12 +399,15 @@ class _HomeState extends State<AccueilPage> {
             width: 1.2,
           ),
         ),
-        child: Text(
-          label,
-          style: GoogleFonts.montserrat(
-            color: isSelected ? Colors.black : Colors.white,
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: GoogleFonts.montserrat(
+              color: isSelected ? Colors.black : Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),
