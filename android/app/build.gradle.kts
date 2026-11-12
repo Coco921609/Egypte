@@ -36,10 +36,10 @@ android {
         // --- GESTION DES VERSIONS ---
         // versionCode : DOIT être un nombre entier (ex: 1, 2, 3...).
         // Augmentez-le de +1 à chaque fois que vous envoyez sur Google Play.
-        versionCode = 17
+        versionCode = 18
 
         // versionName : La version affichée aux utilisateurs.
-        versionName = "15.0.0"
+        versionName = "16.0.0"
         // ----------------------------
     }
 
