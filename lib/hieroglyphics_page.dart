@@ -1,22 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/gestures.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// --- CONFIGURATION WEB ET DÉFILEMENT ---
-class WebScrollBehavior extends MaterialScrollBehavior {
-  @override
-  Set<PointerDeviceKind> get dragDevices => {
-    PointerDeviceKind.touch,
-    PointerDeviceKind.mouse,
-    PointerDeviceKind.trackpad,
-  };
-
-  @override
-  ScrollPhysics getScrollPhysics(BuildContext context) {
-    return const ClampingScrollPhysics();
-  }
-}
+import 'egypt_design.dart';
 
 class HieroglyphicsPage extends StatefulWidget {
   const HieroglyphicsPage({super.key});
@@ -26,18 +12,16 @@ class HieroglyphicsPage extends StatefulWidget {
 }
 
 class _HieroglyphicsPageState extends State<HieroglyphicsPage> {
-  final ScrollController _scrollController = ScrollController();
   String _lang = 'fr';
 
-  // Palette de couleurs Premium
-  final Color _bgDark = const Color(0xFF090A0F);
-  final Color _cardDark = const Color(0xFF14151B);
-  final Color _accentGold = const Color(0xFFDFB15B);
+  static const Color _gold = Color(0xFFDFB15B);
+  static const Color _teal = Color(0xFF0F766E);
 
   // --- TRADUCTIONS DE L'INTERFACE ---
   static const Map<String, Map<String, String>> _uiTranslations = {
     'fr': {
       'pageTitle': 'Hiéroglyphes égyptiens',
+      'subtitle': "Déchiffrez l'écriture sacrée des pharaons.",
       'uniliteral': 'Signes unilitères (Alphabet de A à Z)',
       'biliteral': 'Symboles sacrés & Cartouches',
       'phonetic': 'Phonétique',
@@ -45,6 +29,7 @@ class _HieroglyphicsPageState extends State<HieroglyphicsPage> {
     },
     'en': {
       'pageTitle': 'Egyptian Hieroglyphics',
+      'subtitle': 'Decode the sacred writing of the pharaohs.',
       'uniliteral': 'Uniliteral Signs (Alphabet A to Z)',
       'biliteral': 'Sacred Symbols & Cartouches',
       'phonetic': 'Phonetic',
@@ -52,6 +37,7 @@ class _HieroglyphicsPageState extends State<HieroglyphicsPage> {
     },
     'ar': {
       'pageTitle': 'الهيروغليفية المصرية',
+      'subtitle': 'افكّ شفرة الكتابة المقدسة للفراعنة.',
       'uniliteral': 'علامات أحادية الحرف (الأبجدية من أ إلى ي)',
       'biliteral': 'الرموز المقدسة والخراطيش',
       'phonetic': 'الصوتي',
@@ -59,7 +45,7 @@ class _HieroglyphicsPageState extends State<HieroglyphicsPage> {
     },
   };
 
-  // --- DONNÉES COMPLÈTES DE A À Z ---
+  // --- DONNÉES COMPLÈTES DE A À Z (inchangées) ---
   final List<Map<String, dynamic>> _data = [
     {
       "categoryKey": "uniliteral",
@@ -294,370 +280,313 @@ class _HieroglyphicsPageState extends State<HieroglyphicsPage> {
 
   Future<void> _chargerLangue() async {
     final prefs = await SharedPreferences.getInstance();
-    final String? langSauvegardee = prefs.getString('selected_language');
-    if (langSauvegardee != null && _uiTranslations.containsKey(langSauvegardee)) {
-      setState(() {
-        _lang = langSauvegardee;
-      });
+    final String? sauvegardee = prefs.getString('selected_language');
+    if (sauvegardee != null && _uiTranslations.containsKey(sauvegardee) && mounted) {
+      setState(() => _lang = sauvegardee);
     }
   }
 
-  Future<void> _changerLangue(String nouvelleLangue) async {
-    if (_lang == nouvelleLangue) return;
+  Future<void> _changerLangue(String nouvelle) async {
+    if (_lang == nouvelle) return;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('selected_language', nouvelleLangue);
-    setState(() {
-      _lang = nouvelleLangue;
-    });
+    await prefs.setString('selected_language', nouvelle);
+    if (mounted) setState(() => _lang = nouvelle);
   }
 
-  String _getTranslatedText(String key) {
-    return _uiTranslations[_lang]?[key] ?? _uiTranslations['fr']![key] ?? key;
-  }
+  String _t(String key) => _uiTranslations[_lang]?[key] ?? _uiTranslations['fr']![key] ?? key;
 
-  Widget _buildLangButton(String label, String langCode) {
-    final bool isSelected = _lang == langCode;
-    return GestureDetector(
-      onTap: () => _changerLangue(langCode),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        decoration: BoxDecoration(
-          color: isSelected ? _accentGold : _cardDark,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? _accentGold : Colors.white24,
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.black : Colors.white,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
+  /// Texte localisé d'une entrée de données (name / desc).
+  String _loc(Map m) => (m[_lang] ?? m['fr']) as String;
 
   @override
   Widget build(BuildContext context) {
     final bool isRtl = _lang == 'ar';
+    final double topPad = MediaQuery.of(context).padding.top;
+
+    final List<Widget> slivers = <Widget>[
+      SliverToBoxAdapter(child: _buildHeader(topPad, isRtl)),
+    ];
+
+    for (int s = 0; s < _data.length; s++) {
+      final Map<String, dynamic> cat = _data[s];
+      final String key = cat['categoryKey'] as String;
+      final List<dynamic> items = cat['items'] as List<dynamic>;
+      final bool isUniliteral = key == 'uniliteral';
+
+      slivers.add(SliverToBoxAdapter(
+        child: EgyptSectionLabel(
+          index: (s + 1).toString().padLeft(2, '0'),
+          title: _t(key),
+          accent: _gold,
+        ),
+      ));
+
+      if (isUniliteral) {
+        slivers.add(SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 22),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.56,
+            ),
+            delegate: SliverChildBuilderDelegate(
+                  (context, i) => _glyphTile(items[i] as Map<String, dynamic>),
+              childCount: items.length,
+            ),
+          ),
+        ));
+      } else {
+        slivers.add(SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 22),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+                  (context, i) => Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: _cartoucheCard(items[i] as Map<String, dynamic>),
+              ),
+              childCount: items.length,
+            ),
+          ),
+        ));
+      }
+
+      slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 40)));
+    }
+
+    slivers.add(SliverToBoxAdapter(child: _buildFooter()));
 
     return Directionality(
       textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
-        backgroundColor: _bgDark,
-        body: ScrollConfiguration(
-          behavior: WebScrollBehavior(),
-          child: CustomScrollView(
-            controller: _scrollController,
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              // --- BARRE DE NAVIGATION (TITRE ESPACÉ) ---
-              SliverAppBar(
-                pinned: false,
-                floating: true,
-                backgroundColor: _bgDark.withOpacity(0.9),
-                elevation: 0,
-                toolbarHeight: 70,
-                leadingWidth: 50,
-                leading: Padding(
-                  padding: const EdgeInsets.only(left: 12.0, top: 8, bottom: 8),
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: _cardDark,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white12),
-                      ),
-                      child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 14),
-                    ),
-                  ),
-                ),
-                titleSpacing: 8,
-                title: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: isRtl ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Text(
-                    _getTranslatedText('pageTitle').toLowerCase(),
-                    maxLines: 1,
-                    style: GoogleFonts.montserrat(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                ),
-                actions: [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 12.0),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildLangButton('FR', 'fr'),
-                        _buildLangButton('EN', 'en'),
-                        _buildLangButton('AR', 'ar'),
-                      ],
-                    ),
-                  ),
-                ],
+        backgroundColor: EgyptPalette.bg,
+        body: Stack(
+          children: [
+            const Positioned.fill(
+              child: EgyptAurora(
+                colors: [_gold, _teal, EgyptPalette.violet, EgyptPalette.terracotta],
               ),
-
-              // --- CONTENU PRINCIPAL ---
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                        (context, index) => _buildCategorySection(_data[index]),
-                    childCount: _data.length,
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+            CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: slivers,
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildCategorySection(Map<String, dynamic> categoryData) {
-    final String categoryKey = categoryData["categoryKey"];
-    final String categoryTitle = _getTranslatedText(categoryKey);
-    final List<dynamic> items = categoryData["items"];
-    final bool isUniliteral = categoryKey == "uniliteral";
+  // ───────────────────────── En-tête ─────────────────────────
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 30),
+  Widget _buildHeader(double topPad, bool isRtl) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(22, topPad + 12, 22, 30),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16, left: 4, right: 4),
+          Row(
+            children: [
+              EgyptBackButton(isRtl: isRtl, onTap: () => Navigator.pop(context)),
+              const Spacer(),
+              EgyptLangSwitch(current: _lang, accent: _gold, onChanged: _changerLangue),
+            ],
+          ),
+          const SizedBox(height: 40),
+          EgyptReveal(
             child: Text(
-              categoryTitle.toLowerCase(),
-              style: GoogleFonts.montserrat(
-                color: _accentGold,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
+              _t('pageTitle'),
+              style: GoogleFonts.playfairDisplay(
+                color: EgyptPalette.sand,
+                fontSize: 46,
+                height: 1.04,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
-          if (isUniliteral)
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 0.75,
-              ),
-              itemCount: items.length,
-              itemBuilder: (context, index) => _buildGlyphCardGrid(items[index]),
-            )
-          else
-            ...items.map((item) => _buildGlyphCardFull(item)),
+          const SizedBox(height: 14),
+          EgyptReveal(
+            delay: 120,
+            child: Text(
+              _t('subtitle'),
+              style: GoogleFonts.montserrat(color: EgyptPalette.muted, fontSize: 14, height: 1.6),
+            ),
+          ),
+          const SizedBox(height: 26),
         ],
       ),
     );
   }
 
-  Widget _buildGlyphCardGrid(Map<String, dynamic> item) {
-    final String glyph = item["glyph"];
-    final String code = item["code"];
-    final String phonetic = item["phonetic"];
-    final String name = item["name"][_lang] ?? item["name"]["fr"]!;
+  // ───────────────────────── Signes unilitères : tuile en verre ─────────────────────────
 
-    return Container(
-      decoration: BoxDecoration(
-        color: _cardDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _accentGold.withOpacity(0.2), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.4),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(8),
+  Widget _glyphTile(Map<String, dynamic> item) {
+    final String glyph = item['glyph'] as String;
+    final String code = item['code'] as String;
+    final String phonetic = item['phonetic'] as String;
+    final String name = _loc(item['name'] as Map);
+
+    return EgyptGlass(
+      radius: 26,
+      padding: const EdgeInsets.fromLTRB(8, 14, 8, 14),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 62,
+            height: 62,
             decoration: BoxDecoration(
-              color: _accentGold.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _accentGold.withOpacity(0.3)),
-            ),
-            child: Center(
-              child: Text(
-                glyph,
-                style: const TextStyle(color: Colors.white, fontSize: 22),
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [_gold.withOpacity(0.22), _gold.withOpacity(0.04)],
               ),
+              border: Border.all(color: _gold.withOpacity(0.5)),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              glyph,
+              style: const TextStyle(color: Colors.white, fontSize: 30),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            name,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.playfairDisplay(
+              color: EgyptPalette.sand,
+              fontSize: 13,
+              height: 1.2,
+              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 6),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              name,
-              maxLines: 1,
-              style: GoogleFonts.playfairDisplay(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(height: 2),
           Text(
             phonetic,
-            style: GoogleFonts.montserrat(
-              color: _accentGold,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
+            textAlign: TextAlign.center,
+            style: GoogleFonts.montserrat(color: _gold, fontSize: 11, fontWeight: FontWeight.w700),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           Text(
-            code,
-            style: GoogleFonts.montserrat(
-              color: Colors.white54,
-              fontSize: 8,
-            ),
+            '${_t('code')} $code',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.montserrat(color: EgyptPalette.muted, fontSize: 10),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildGlyphCardFull(Map<String, dynamic> item) {
-    final String glyph = item["glyph"];
-    final String code = item["code"];
-    final String phonetic = item["phonetic"];
-    final String name = item["name"][_lang] ?? item["name"]["fr"]!;
-    final String desc = item["desc"][_lang] ?? item["desc"]["fr"]!;
+  // ───────────────────────── Symboles : cartouche en verre ─────────────────────────
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: _cardDark,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _accentGold.withOpacity(0.2), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.55),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+  Widget _cartoucheCard(Map<String, dynamic> item) {
+    final String glyph = item['glyph'] as String;
+    final String code = item['code'] as String;
+    final String phonetic = item['phonetic'] as String;
+    final String name = _loc(item['name'] as Map);
+    final String desc = _loc(item['desc'] as Map);
+
+    return EgyptGlass(
+      radius: 34,
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Cartouche : cadre ovale qui enferme le signe
+          Container(
+            width: 98,
+            height: 128,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(49),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [_gold.withOpacity(0.2), _gold.withOpacity(0.03)],
+              ),
+              border: Border.all(color: _gold.withOpacity(0.55), width: 1.2),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              glyph,
+              style: const TextStyle(color: Colors.white, fontSize: 56),
+            ),
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+          const SizedBox(width: 18),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: _accentGold.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _accentGold.withOpacity(0.3)),
-                  ),
-                  child: Center(
-                    child: Text(
-                      glyph,
-                      style: const TextStyle(color: Colors.white, fontSize: 34),
-                    ),
+                Text(
+                  name,
+                  style: GoogleFonts.playfairDisplay(
+                    color: EgyptPalette.sand,
+                    fontSize: 24,
+                    height: 1.12,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${_t('code')}: $code',
+                    style: GoogleFonts.montserrat(color: EgyptPalette.muted, fontSize: 10.5, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text.rich(
+                  TextSpan(
                     children: [
-                      Text(
-                        name,
-                        style: GoogleFonts.playfairDisplay(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      TextSpan(
+                        text: '${_t('phonetic')}: ',
+                        style: GoogleFonts.montserrat(color: EgyptPalette.muted, fontSize: 11.5, fontWeight: FontWeight.w600),
                       ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          "${_getTranslatedText('code')}: $code",
-                          style: GoogleFonts.montserrat(
-                            color: Colors.white54,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                      TextSpan(
+                        text: phonetic,
+                        style: GoogleFonts.montserrat(color: _gold, fontSize: 13, fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Container(height: 1, color: Colors.white.withOpacity(0.05)),
-            const SizedBox(height: 18),
-            Row(
-              children: [
+                const SizedBox(height: 10),
                 Text(
-                  "${_getTranslatedText('phonetic')}: ",
-                  style: GoogleFonts.montserrat(
-                    color: Colors.white38,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  phonetic,
-                  style: GoogleFonts.montserrat(
-                    color: _accentGold,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  desc,
+                  style: GoogleFonts.montserrat(color: EgyptPalette.muted, fontSize: 13, height: 1.55),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              desc,
-              style: GoogleFonts.montserrat(
-                color: Colors.white70,
-                fontSize: 12,
-                height: 1.5,
-              ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ───────────────────────── Pied de page ─────────────────────────
+
+  Widget _buildFooter() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 10, 24, 60),
+      child: Column(
+        children: [
+          Container(
+            width: 56,
+            height: 1,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(colors: [Colors.transparent, _gold, Colors.transparent]),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 22),
+          Text(
+            'ÉGYPTE',
+            style: GoogleFonts.cinzel(color: EgyptPalette.sand, fontSize: 14, letterSpacing: 5),
+          ),
+        ],
       ),
     );
   }

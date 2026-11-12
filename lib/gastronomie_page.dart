@@ -1,23 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/gestures.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// --- CONFIGURATION WEB ET DÉFILEMENT ---
-class WebScrollBehavior extends MaterialScrollBehavior {
-  @override
-  Set<PointerDeviceKind> get dragDevices => {
-    PointerDeviceKind.touch,
-    PointerDeviceKind.mouse,
-    PointerDeviceKind.trackpad,
-  };
-
-  @override
-  ScrollPhysics getScrollPhysics(BuildContext context) {
-    return const ClampingScrollPhysics();
-  }
-}
+import 'egypt_design.dart';
 
 class Plat {
   final String id;
@@ -47,31 +32,34 @@ class GastronomiePage extends StatefulWidget {
 }
 
 class _GastronomiePageState extends State<GastronomiePage> {
-  final ScrollController _scrollController = ScrollController();
   String _lang = 'fr';
 
-  // Palette de couleurs Premium harmonisée
-  final Color _bgDark = const Color(0xFF090A0F);
-  final Color _cardDark = const Color(0xFF14151B);
-  final Color _accentPink = const Color(0xFFFD79A8);
+  static const Color _accent = Color(0xFFFD79A8);
+  static const Color _gold = Color(0xFFF59E0B);
 
   // --- TRADUCTIONS DE L'INTERFACE ---
   static const Map<String, Map<String, String>> _uiTranslations = {
     'fr': {
       'pageTitle': 'Gastronomie égyptienne',
-      'recipeTitle': 'RECETTE TRADITIONNELLE',
+      'subtitle': 'Les saveurs de la vallée du Nil, de Louxor au Caire.',
+      'recipeTitle': 'Recette traditionnelle',
+      'dishes': 'plats',
     },
     'en': {
       'pageTitle': 'Egyptian Gastronomy',
-      'recipeTitle': 'TRADITIONAL RECIPE',
+      'subtitle': 'The flavours of the Nile valley, from Luxor to Cairo.',
+      'recipeTitle': 'Traditional recipe',
+      'dishes': 'dishes',
     },
     'ar': {
       'pageTitle': 'المأكولات المصرية',
+      'subtitle': 'نكهات وادي النيل، من الأقصر إلى القاهرة.',
       'recipeTitle': 'وصفة تقليدية',
+      'dishes': 'أطباق',
     },
   };
 
-  // --- DONNÉES DES PLATS TRADUITES DANS LES 3 LANGUES ---
+  // --- DONNÉES DES PLATS (inchangées) ---
   final List<Plat> tous_les_plats = [
     Plat(
       id: "koshari",
@@ -344,296 +332,320 @@ class _GastronomiePageState extends State<GastronomiePage> {
 
   Future<void> _chargerLangue() async {
     final prefs = await SharedPreferences.getInstance();
-    final String? langSauvegardee = prefs.getString('selected_language');
-    if (langSauvegardee != null && _uiTranslations.containsKey(langSauvegardee)) {
-      setState(() {
-        _lang = langSauvegardee;
-      });
+    final String? sauvegardee = prefs.getString('selected_language');
+    if (sauvegardee != null && _uiTranslations.containsKey(sauvegardee) && mounted) {
+      setState(() => _lang = sauvegardee);
     }
   }
 
-  Future<void> _changerLangue(String nouvelleLangue) async {
-    if (_lang == nouvelleLangue) return;
+  Future<void> _changerLangue(String nouvelle) async {
+    if (_lang == nouvelle) return;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('selected_language', nouvelleLangue);
-    setState(() {
-      _lang = nouvelleLangue;
-    });
+    await prefs.setString('selected_language', nouvelle);
+    if (mounted) setState(() => _lang = nouvelle);
   }
 
-  String _getTranslatedText(String key) {
-    return _uiTranslations[_lang]?[key] ?? _uiTranslations['fr']![key] ?? key;
-  }
-
-  Widget _buildLangButton(String label, String langCode) {
-    final bool isSelected = _lang == langCode;
-    return GestureDetector(
-      onTap: () => _changerLangue(langCode),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        decoration: BoxDecoration(
-          color: isSelected ? _accentPink : _cardDark,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? _accentPink : Colors.white24,
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.black : Colors.white,
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
+  String _t(String key) => _uiTranslations[_lang]?[key] ?? _uiTranslations['fr']![key] ?? key;
 
   @override
   Widget build(BuildContext context) {
     final bool isRtl = _lang == 'ar';
+    final double topPad = MediaQuery.of(context).padding.top;
 
     return Directionality(
       textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
-      child: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle.light,
-        child: Scaffold(
-          backgroundColor: _bgDark,
-          body: ScrollConfiguration(
-            behavior: WebScrollBehavior(),
-            child: CustomScrollView(
-              controller: _scrollController,
+      child: Scaffold(
+        backgroundColor: EgyptPalette.bg,
+        body: Stack(
+          children: [
+            const Positioned.fill(
+              child: EgyptAurora(colors: [_accent, _gold, EgyptPalette.violet, EgyptPalette.rose]),
+            ),
+            CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
-                // --- BARRE D'APPUI DEFILEMENT SITE WEB ---
-                SliverAppBar(
-                  pinned: false, // Défile avec l'intégralité de la page
-                  stretch: true,
-                  backgroundColor: _bgDark.withOpacity(0.9),
-                  elevation: 0,
-                  leading: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: _cardDark,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white12),
-                        ),
-                        child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 14),
-                      ),
-                    ),
-                  ),
-                  title: Text(
-                    _getTranslatedText('pageTitle'),
-                    style: GoogleFonts.playfairDisplay(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                    ),
-                  ),
-                  actions: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Row(
-                        children: [
-                          _buildLangButton('FR', 'fr'),
-                          _buildLangButton('EN', 'en'),
-                          _buildLangButton('AR', 'ar'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                // --- LISTE DES PLATS ---
+                SliverToBoxAdapter(child: _buildHeader(topPad, isRtl)),
                 SliverPadding(
-                  padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
-                          (context, index) => _build_plat_card(tous_les_plats[index]),
+                          (context, i) => EgyptReveal(
+                        delay: i < 4 ? i * 90 : 0,
+                        child: _dishCard(tous_les_plats[i], i),
+                      ),
                       childCount: tous_les_plats.length,
                     ),
                   ),
                 ),
+                SliverToBoxAdapter(child: _buildFooter()),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  // --- CARTE DE PLAT GASTRONOMIQUE PREMIUM AVEC HALO UNDERGLOW ---
-  Widget _build_plat_card(Plat plat) {
-    final String platNom = plat.name[_lang] ?? plat.name['fr']!;
-    final String platVille = plat.ville[_lang] ?? plat.ville['fr']!;
-    final String platDesc = plat.description[_lang] ?? plat.description['fr']!;
-    final String platRecette = plat.recette[_lang] ?? plat.recette['fr']!;
-    final List<String> platTags = plat.tags[_lang] ?? plat.tags['fr']!;
+  // ───────────────────────── En-tête ─────────────────────────
+
+  Widget _buildHeader(double topPad, bool isRtl) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(22, topPad + 12, 22, 30),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              EgyptBackButton(isRtl: isRtl, onTap: () => Navigator.pop(context)),
+              const Spacer(),
+              EgyptLangSwitch(current: _lang, accent: _accent, onChanged: _changerLangue),
+            ],
+          ),
+          const SizedBox(height: 40),
+          EgyptReveal(
+            child: Text(
+              _t('pageTitle'),
+              style: GoogleFonts.playfairDisplay(
+                color: EgyptPalette.sand,
+                fontSize: 46,
+                height: 1.04,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          EgyptReveal(
+            delay: 120,
+            child: Text(
+              _t('subtitle'),
+              style: GoogleFonts.montserrat(color: EgyptPalette.muted, fontSize: 14, height: 1.6),
+            ),
+          ),
+          const SizedBox(height: 22),
+          EgyptReveal(
+            delay: 200,
+            child: Text(
+              '${tous_les_plats.length} ${_t('dishes')}'.toUpperCase(),
+              style: GoogleFonts.montserrat(
+                color: _accent,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 2.4,
+              ),
+            ),
+          ),
+          const SizedBox(height: 26),
+        ],
+      ),
+    );
+  }
+
+  // ───────────────────────── Carte d'un plat ─────────────────────────
+
+  Widget _dishCard(Plat plat, int index) {
+    final String nom = plat.name[_lang] ?? plat.name['fr']!;
+    final String ville = plat.ville[_lang] ?? plat.ville['fr']!;
+    final String desc = plat.description[_lang] ?? plat.description['fr']!;
+    final String recette = plat.recette[_lang] ?? plat.recette['fr']!;
+    final List<String> tags = plat.tags[_lang] ?? plat.tags['fr']!;
+    final String numero = (index + 1).toString().padLeft(2, '0');
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 28),
+      margin: const EdgeInsets.only(bottom: 30),
       decoration: BoxDecoration(
-        color: _cardDark,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _accentPink.withOpacity(0.18), width: 1.2),
+        color: EgyptPalette.card.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(38),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.6),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-          BoxShadow(
-            color: _accentPink.withOpacity(0.22),
-            blurRadius: 12,
-            spreadRadius: -2,
-            offset: const Offset(0, 4),
-          ),
-          BoxShadow(
-            color: _accentPink.withOpacity(0.1),
-            blurRadius: 36,
-            spreadRadius: -4,
-            offset: const Offset(0, 16),
-          ),
+          BoxShadow(color: _accent.withOpacity(0.14), blurRadius: 40, offset: const Offset(0, 18)),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(38),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image
-            Image.asset(
-              plat.photo_url,
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-
-            // Corps du texte
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // Photo qui se fond dans la carte
+            SizedBox(
+              height: 300,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  // Badge de la Ville
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  Image.asset(
+                    plat.photo_url,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(color: const Color(0xFF151824)),
+                  ),
+                  const DecoratedBox(
                     decoration: BoxDecoration(
-                      color: _accentPink.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: _accentPink.withOpacity(0.4), width: 1),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.location_on_rounded, color: _accentPink, size: 12),
-                        const SizedBox(width: 4),
-                        Text(
-                          platVille.toUpperCase(),
-                          style: GoogleFonts.montserrat(
-                            color: _accentPink,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Nom du plat
-                  Text(
-                    platNom,
-                    style: GoogleFonts.playfairDisplay(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    platDesc,
-                    style: GoogleFonts.montserrat(
-                      color: Colors.white54,
-                      fontSize: 12,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Zone Recette stylisée
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.02),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withOpacity(0.05)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _getTranslatedText('recipeTitle'),
-                          style: GoogleFonts.montserrat(
-                            color: _accentPink,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          platRecette,
-                          style: GoogleFonts.montserrat(
-                            color: Colors.white60,
-                            fontSize: 13,
-                            height: 1.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Tags du Plat
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: platTags.map((tag) => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(8),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, EgyptPalette.card],
+                        stops: [0.4, 1.0],
                       ),
-                      child: Text(
-                        tag,
-                        style: GoogleFonts.montserrat(
-                          color: Colors.white60,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    ),
+                  ),
+                  PositionedDirectional(
+                    top: 18,
+                    start: 18,
+                    child: EgyptGlass(
+                      radius: 20,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.location_on_rounded, color: _accent, size: 14),
+                          const SizedBox(width: 6),
+                          Text(
+                            ville.toUpperCase(),
+                            style: GoogleFonts.montserrat(
+                              color: EgyptPalette.sand,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.4,
+                            ),
+                          ),
+                        ],
                       ),
-                    )).toList(),
+                    ),
+                  ),
+                  PositionedDirectional(
+                    top: 2,
+                    end: 22,
+                    child: Text(
+                      numero,
+                      style: GoogleFonts.playfairDisplay(
+                        color: Colors.white.withOpacity(0.22),
+                        fontSize: 64,
+                        fontWeight: FontWeight.w700,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
                   ),
                 ],
               ),
-            )
+            ),
+
+            // Texte
+            Padding(
+              padding: const EdgeInsets.fromLTRB(26, 0, 26, 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    nom,
+                    style: GoogleFonts.playfairDisplay(
+                      color: EgyptPalette.sand,
+                      fontSize: 36,
+                      height: 1.05,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    desc,
+                    style: GoogleFonts.montserrat(color: EgyptPalette.muted, fontSize: 14, height: 1.6),
+                  ),
+                  const SizedBox(height: 22),
+
+                  // Recette : bloc avec filet coloré
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: _accent.withOpacity(0.07),
+                      borderRadius: BorderRadius.circular(26),
+                      border: Border.all(color: _accent.withOpacity(0.18)),
+                    ),
+                    child: IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Container(
+                            width: 3,
+                            decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(3)),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _t('recipeTitle').toUpperCase(),
+                                  style: GoogleFonts.montserrat(
+                                    color: _accent,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1.6,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  recette,
+                                  style: GoogleFonts.montserrat(
+                                    color: EgyptPalette.sand.withOpacity(0.88),
+                                    fontSize: 14,
+                                    height: 1.65,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [for (final tag in tags) _tagPill(tag)],
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _tagPill(String tag) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: Text(
+        tag,
+        style: GoogleFonts.montserrat(color: EgyptPalette.muted, fontSize: 11.5, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  // ───────────────────────── Pied de page ─────────────────────────
+
+  Widget _buildFooter() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 10, 24, 60),
+      child: Column(
+        children: [
+          Container(
+            width: 56,
+            height: 1,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(colors: [Colors.transparent, _accent, Colors.transparent]),
+            ),
+          ),
+          const SizedBox(height: 22),
+          Text(
+            'ÉGYPTE',
+            style: GoogleFonts.cinzel(color: EgyptPalette.sand, fontSize: 14, letterSpacing: 5),
+          ),
+        ],
       ),
     );
   }

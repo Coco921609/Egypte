@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'accueil.dart';
+import 'egypt_design.dart';
 
 // ==========================================
 // 1. THÈMES & DESIGN SYSTÈME PHARAONIQUE
@@ -37,7 +38,7 @@ class ParametresPage extends StatelessWidget {
 }
 
 // ==========================================
-// 3. PAGE DES PARAMÈTRES PHARAONIQUES
+// 3. PAGE DES PARAMÈTRES
 // ==========================================
 class ParametresScreen extends StatefulWidget {
   final String languageCode;
@@ -134,6 +135,7 @@ class _ParametresScreenState extends State<ParametresScreen> {
 
   Future<void> _loadCurrentUserData() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() {
       _nameController.text = prefs.getString('user_name') ?? '';
       _selectedGenre = prefs.getString('user_gender') ?? 'Homme';
@@ -188,412 +190,337 @@ class _ParametresScreenState extends State<ParametresScreen> {
     );
   }
 
+  // ───────────────────────── BUILD ─────────────────────────
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
         backgroundColor: EgyptTheme.background,
-        body: Center(
-          child: CircularProgressIndicator(color: _selectedThemeColor),
+        body: Stack(
+          children: [
+            const Positioned.fill(
+              child: EgyptAurora(colors: [EgyptTheme.accentGold, EgyptPalette.violet]),
+            ),
+            Center(child: CircularProgressIndicator(color: _selectedThemeColor)),
+          ],
         ),
       );
     }
 
     final t = _localizedText[_currentLang] ?? _localizedText['fr']!;
-    final isRtl = _currentLang == 'ar';
+    final bool isRtl = _currentLang == 'ar';
     final bool isMan = _selectedGenre == 'Homme' || _selectedGenre == 'Man' || _selectedGenre == 'رجل';
-    final currentAvatars = isMan ? _avatarsHommes : _avatarsFemmes;
+    final List<String> currentAvatars = isMan ? _avatarsHommes : _avatarsFemmes;
 
     if (!currentAvatars.contains(_selectedAvatar)) {
       _selectedAvatar = currentAvatars.first;
     }
 
+    final double topPad = MediaQuery.of(context).padding.top;
+    final double bottomPad = MediaQuery.of(context).padding.bottom;
+
     return Directionality(
       textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: EgyptTheme.background,
-        body: SafeArea(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: EgyptTheme.cardDark,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: _selectedThemeColor.withOpacity(0.5), width: 1.5),
-                        ),
-                        child: Icon(
-                          Icons.arrow_back_ios_rounded,
-                          color: _selectedThemeColor,
-                          size: 18,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        t['title']!,
-                        style: GoogleFonts.cinzel(
-                          color: _selectedThemeColor,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Padding(
-                  padding: const EdgeInsets.only(left: 46.0),
-                  child: Text(
-                    t['subtitle']!,
-                    style: GoogleFonts.montserrat(
-                      color: EgyptTheme.textMuted,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 28),
-
-                Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(width: 40, height: 1, color: _selectedThemeColor.withOpacity(0.3)),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 10),
-                        child: Text("🏛️", style: TextStyle(fontSize: 14)),
-                      ),
-                      Container(width: 40, height: 1, color: _selectedThemeColor.withOpacity(0.3)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 28),
-
-                // 1. NOM ET PRÉNOM
-                Text(
-                  t['nameLabel']!,
-                  style: GoogleFonts.montserrat(color: EgyptTheme.textLight, fontSize: 13, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    color: EgyptTheme.cardDark,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: _hasNameError ? EgyptTheme.coral : _selectedThemeColor.withOpacity(0.4),
-                      width: _hasNameError ? 2 : 1.2,
-                    ),
-                  ),
-                  child: TextField(
-                    controller: _nameController,
-                    style: GoogleFonts.montserrat(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
-                    onChanged: (val) {
-                      if (_hasNameError && val.trim().isNotEmpty) {
-                        setState(() {
-                          _hasNameError = false;
-                        });
-                      }
-                    },
-                    decoration: InputDecoration(
-                      prefixIcon: Icon(Icons.person_outline_rounded, color: _selectedThemeColor, size: 20),
-                      hintText: t['nameHint'],
-                      hintStyle: GoogleFonts.montserrat(
-                        color: _hasNameError ? EgyptTheme.coral.withOpacity(0.8) : EgyptTheme.textMuted.withOpacity(0.6),
-                        fontSize: 13,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                      border: InputBorder.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // 2. GENRE
-                Text(
-                  t['genreLabel']!,
-                  style: GoogleFonts.montserrat(color: EgyptTheme.textLight, fontSize: 13, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildGenreButton(
-                        label: t['genreMan']!,
-                        icon: Icons.male_rounded,
-                        isSelected: isMan,
-                        onTap: () {
-                          setState(() {
-                            _selectedGenre = t['genreMan']!;
-                            _selectedAvatar = _avatarsHommes[0];
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildGenreButton(
-                        label: t['genreWoman']!,
-                        icon: Icons.female_rounded,
-                        isSelected: !isMan,
-                        onTap: () {
-                          setState(() {
-                            _selectedGenre = t['genreWoman']!;
-                            _selectedAvatar = _avatarsFemmes[0];
-                          });
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // 3. COULEUR DU THÈME
-                Text(
-                  t['themeLabel']!,
-                  style: GoogleFonts.montserrat(color: EgyptTheme.textLight, fontSize: 13, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: _themeColors.map((color) {
-                    final isSelected = _selectedThemeColor.value == color.value;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedThemeColor = color;
-                        });
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected ? Colors.white : Colors.transparent,
-                            width: 2.5,
-                          ),
-                          boxShadow: isSelected
-                              ? [
-                            BoxShadow(
-                              color: color.withOpacity(0.6),
-                              blurRadius: 12,
-                              spreadRadius: 2,
-                            ),
-                          ]
-                              : [],
-                        ),
-                        child: isSelected ? const Icon(Icons.check_rounded, color: Colors.black87, size: 20) : null,
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 26),
-
-                // 4. AVATAR PHARAONIQUE
-                Text(
-                  t['avatarLabel']!,
-                  style: GoogleFonts.montserrat(color: EgyptTheme.textLight, fontSize: 13, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 14),
-                Center(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          _selectedThemeColor,
-                          _selectedThemeColor.withOpacity(0.3),
-                          Colors.transparent,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: EgyptTheme.cardDark,
-                        border: Border.all(color: _selectedThemeColor.withOpacity(0.6), width: 2),
-                      ),
-                      child: Center(
-                        child: Text(
-                          _selectedAvatar,
-                          style: const TextStyle(fontSize: 44),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: currentAvatars.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 6,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                    childAspectRatio: 1.0,
-                  ),
-                  itemBuilder: (context, index) {
-                    final avatar = currentAvatars[index];
-                    final isSelected = avatar == _selectedAvatar;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedAvatar = avatar;
-                        });
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? _selectedThemeColor.withOpacity(0.25)
-                              : EgyptTheme.cardDark,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: isSelected ? _selectedThemeColor : EgyptTheme.cardDarkSecondary,
-                            width: isSelected ? 2 : 1,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            avatar,
-                            style: TextStyle(
-                              fontSize: isSelected ? 24 : 20,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 26),
-
-                // 5. LANGUE DE L'APPLICATION
-                Text(
-                  t['langLabel']!,
-                  style: GoogleFonts.montserrat(color: EgyptTheme.textLight, fontSize: 13, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildLangButton('fr', t['langFr']!),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _buildLangButton('en', t['langEn']!),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _buildLangButton('ar', t['langAr']!),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 36),
-
-                // BOUTON VALIDER
-                Container(
-                  width: double.infinity,
-                  height: 56,
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: EgyptAurora(
+                colors: [_selectedThemeColor, EgyptPalette.teal, EgyptPalette.violet, EgyptPalette.rose],
+              ),
+            ),
+            SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(22, topPad + 12, 22, bottomPad + 150),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(t, isRtl),
+                  const SizedBox(height: 34),
+                  _buildProfileHero(t),
+                  const SizedBox(height: 30),
+                  _block(t['nameLabel']!, _buildNameField(t)),
+                  _block(t['genreLabel']!, _buildGenreRow(t, isMan)),
+                  _block(t['themeLabel']!, _buildThemeRow()),
+                  _block(t['avatarLabel']!, _buildAvatarGrid(currentAvatars)),
+                  _block(t['langLabel']!, _buildLangRow(t)),
+                ],
+              ),
+            ),
+            // Dégradé de lecture sous le bouton flottant
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: bottomPad + 130,
+              child: const IgnorePointer(
+                child: DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [_selectedThemeColor, _selectedThemeColor.withOpacity(0.8)],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _selectedThemeColor.withOpacity(0.3),
-                        blurRadius: 16,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                    ),
-                    onPressed: _validateAndSave,
-                    child: Text(
-                      t['button']!,
-                      style: GoogleFonts.cinzel(
-                        color: Colors.black87,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, EgyptTheme.background],
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
-              ],
+              ),
             ),
-          ),
+            Positioned(
+              left: 22,
+              right: 22,
+              bottom: bottomPad + 18,
+              child: _buildSaveButton(t),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildGenreButton({
+  // ───────────────────────── En-tête ─────────────────────────
+
+  Widget _buildHeader(Map<String, String> t, bool isRtl) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: EgyptBackButton(isRtl: isRtl, onTap: () => Navigator.pop(context)),
+        ),
+        const SizedBox(height: 36),
+        EgyptReveal(
+          child: Text(
+            t['title']!,
+            style: GoogleFonts.playfairDisplay(
+              color: EgyptPalette.sand,
+              fontSize: 44,
+              height: 1.04,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        EgyptReveal(
+          delay: 120,
+          child: Text(
+            t['subtitle']!,
+            style: GoogleFonts.montserrat(color: EgyptPalette.muted, fontSize: 14, height: 1.6),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ───────────────────────── Profil lumineux ─────────────────────────
+
+  Widget _buildProfileHero(Map<String, String> t) {
+    final String name = _nameController.text.trim();
+    return Center(
+      child: Column(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 450),
+            curve: Curves.easeOutCubic,
+            width: 150,
+            height: 150,
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: SweepGradient(
+                colors: [
+                  _selectedThemeColor,
+                  _selectedThemeColor.withOpacity(0.15),
+                  _selectedThemeColor,
+                  _selectedThemeColor.withOpacity(0.15),
+                  _selectedThemeColor,
+                ],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: _selectedThemeColor.withOpacity(0.35),
+                  blurRadius: 50,
+                  spreadRadius: -4,
+                ),
+              ],
+            ),
+            child: Container(
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: EgyptTheme.cardDark,
+              ),
+              alignment: Alignment.center,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: Text(
+                  _selectedAvatar,
+                  key: ValueKey(_selectedAvatar),
+                  style: const TextStyle(fontSize: 68),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            name.isEmpty ? t['nameHint']! : name,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.playfairDisplay(
+              color: name.isEmpty ? EgyptPalette.muted : EgyptPalette.sand,
+              fontSize: 26,
+              height: 1.2,
+              fontStyle: name.isEmpty ? FontStyle.italic : FontStyle.normal,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ───────────────────────── Bloc en verre ─────────────────────────
+
+  Widget _block(String title, Widget child) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: EgyptGlass(
+        radius: 32,
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.montserrat(
+                color: EgyptPalette.sand,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 16),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ───────────────────────── Nom ─────────────────────────
+
+  Widget _buildNameField(Map<String, String> t) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: _hasNameError ? EgyptTheme.coral : Colors.white.withOpacity(0.12),
+          width: _hasNameError ? 1.6 : 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 16),
+          Icon(Icons.person_outline_rounded, color: _selectedThemeColor, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: _nameController,
+              onChanged: (val) {
+                setState(() {
+                  if (_hasNameError && val.trim().isNotEmpty) {
+                    _hasNameError = false;
+                  }
+                });
+              },
+              style: GoogleFonts.montserrat(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
+              decoration: InputDecoration(
+                hintText: t['nameHint'],
+                hintStyle: GoogleFonts.montserrat(
+                  color: _hasNameError ? EgyptTheme.coral : EgyptTheme.textMuted,
+                  fontSize: 14,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+        ],
+      ),
+    );
+  }
+
+  // ───────────────────────── Genre ─────────────────────────
+
+  Widget _buildGenreRow(Map<String, String> t, bool isMan) {
+    return Row(
+      children: [
+        Expanded(
+          child: _genreTile(
+            label: t['genreMan']!,
+            icon: Icons.male_rounded,
+            selected: isMan,
+            onTap: () {
+              setState(() {
+                _selectedGenre = t['genreMan']!;
+                _selectedAvatar = _avatarsHommes[0];
+              });
+            },
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _genreTile(
+            label: t['genreWoman']!,
+            icon: Icons.female_rounded,
+            selected: !isMan,
+            onTap: () {
+              setState(() {
+                _selectedGenre = t['genreWoman']!;
+                _selectedAvatar = _avatarsFemmes[0];
+              });
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _genreTile({
     required String label,
     required IconData icon,
-    required bool isSelected,
+    required bool selected,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
         decoration: BoxDecoration(
-          color: isSelected ? _selectedThemeColor.withOpacity(0.18) : EgyptTheme.cardDark,
-          borderRadius: BorderRadius.circular(16),
+          color: selected ? _selectedThemeColor.withOpacity(0.18) : Colors.white.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: isSelected ? _selectedThemeColor : EgyptTheme.cardDarkSecondary,
-            width: isSelected ? 2 : 1,
+            color: selected ? _selectedThemeColor : Colors.white.withOpacity(0.1),
+            width: selected ? 1.6 : 1,
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isSelected ? _selectedThemeColor : EgyptTheme.textMuted,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: GoogleFonts.montserrat(
-                color: isSelected ? Colors.white : EgyptTheme.textMuted,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                fontSize: 13,
+            Icon(icon, size: 20, color: selected ? _selectedThemeColor : EgyptTheme.textMuted),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.montserrat(
+                  color: selected ? EgyptTheme.textLight : EgyptTheme.textMuted,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  fontSize: 14,
+                ),
               ),
             ),
           ],
@@ -602,33 +529,156 @@ class _ParametresScreenState extends State<ParametresScreen> {
     );
   }
 
-  Widget _buildLangButton(String code, String label) {
-    final isSelected = _currentLang == code;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _currentLang = code;
-        });
+  // ───────────────────────── Couleur du thème ─────────────────────────
+
+  Widget _buildThemeRow() {
+    return Wrap(
+      spacing: 14,
+      runSpacing: 14,
+      children: _themeColors.map((color) {
+        final bool selected = _selectedThemeColor.value == color.value;
+        return GestureDetector(
+          onTap: () => setState(() => _selectedThemeColor = color),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: selected ? Colors.white : Colors.transparent,
+                width: 2.5,
+              ),
+              boxShadow: selected
+                  ? [BoxShadow(color: color.withOpacity(0.6), blurRadius: 16, spreadRadius: 2)]
+                  : [],
+            ),
+            child: selected ? const Icon(Icons.check_rounded, color: Colors.black87, size: 22) : null,
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  // ───────────────────────── Avatar ─────────────────────────
+
+  Widget _buildAvatarGrid(List<String> avatars) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: avatars.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 6,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 1,
+      ),
+      itemBuilder: (context, index) {
+        final String avatar = avatars[index];
+        final bool selected = avatar == _selectedAvatar;
+        return GestureDetector(
+          onTap: () => setState(() => _selectedAvatar = avatar),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: selected ? _selectedThemeColor.withOpacity(0.22) : Colors.white.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: selected ? _selectedThemeColor : Colors.white.withOpacity(0.08),
+                width: selected ? 1.8 : 1,
+              ),
+            ),
+            child: Text(
+              avatar,
+              style: TextStyle(fontSize: selected ? 26 : 22),
+            ),
+          ),
+        );
       },
+    );
+  }
+
+  // ───────────────────────── Langue ─────────────────────────
+
+  Widget _buildLangRow(Map<String, String> t) {
+    return Row(
+      children: [
+        Expanded(child: _langTile('fr', t['langFr']!)),
+        const SizedBox(width: 10),
+        Expanded(child: _langTile('en', t['langEn']!)),
+        const SizedBox(width: 10),
+        Expanded(child: _langTile('ar', t['langAr']!)),
+      ],
+    );
+  }
+
+  Widget _langTile(String code, String label) {
+    final bool selected = _currentLang == code;
+    return GestureDetector(
+      onTap: () => setState(() => _currentLang = code),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        duration: const Duration(milliseconds: 250),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 6),
         decoration: BoxDecoration(
-          color: isSelected ? _selectedThemeColor.withOpacity(0.18) : EgyptTheme.cardDark,
-          borderRadius: BorderRadius.circular(16),
+          color: selected ? _selectedThemeColor.withOpacity(0.18) : Colors.white.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? _selectedThemeColor : EgyptTheme.cardDarkSecondary,
-            width: isSelected ? 2 : 1,
+            color: selected ? _selectedThemeColor : Colors.white.withOpacity(0.1),
+            width: selected ? 1.6 : 1,
           ),
         ),
-        child: Center(
-          child: Text(
-            label,
-            style: GoogleFonts.montserrat(
-              color: isSelected ? Colors.white : EgyptTheme.textMuted,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              fontSize: 12,
-            ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.montserrat(
+            color: selected ? EgyptTheme.textLight : EgyptTheme.textMuted,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ───────────────────────── Bouton flottant ─────────────────────────
+
+  Widget _buildSaveButton(Map<String, String> t) {
+    return Container(
+      height: 62,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [_selectedThemeColor, _selectedThemeColor.withOpacity(0.78)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(31),
+        boxShadow: [
+          BoxShadow(
+            color: _selectedThemeColor.withOpacity(0.4),
+            blurRadius: 28,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(31)),
+        ),
+        onPressed: _validateAndSave,
+        child: Text(
+          t['button']!,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.cinzel(
+            color: Colors.black87,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
           ),
         ),
       ),
