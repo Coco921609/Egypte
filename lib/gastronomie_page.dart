@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'egypt_design.dart';
+import 'egypt_language.dart';
 
 class Plat {
   final String id;
@@ -327,22 +327,26 @@ class _GastronomiePageState extends State<GastronomiePage> {
   @override
   void initState() {
     super.initState();
-    _chargerLangue();
+    EgyptLanguage.language.addListener(_onLanguageChanged);
+    EgyptLanguage.initialize();
   }
 
-  Future<void> _chargerLangue() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? sauvegardee = prefs.getString('selected_language');
-    if (sauvegardee != null && _uiTranslations.containsKey(sauvegardee) && mounted) {
-      setState(() => _lang = sauvegardee);
+  void _onLanguageChanged() {
+    final String nouvelle = EgyptLanguage.language.value;
+    if (mounted && _lang != nouvelle) {
+      setState(() => _lang = nouvelle);
     }
   }
 
   Future<void> _changerLangue(String nouvelle) async {
     if (_lang == nouvelle) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('selected_language', nouvelle);
-    if (mounted) setState(() => _lang = nouvelle);
+    await EgyptLanguage.setLanguage(nouvelle);
+  }
+
+  @override
+  void dispose() {
+    EgyptLanguage.language.removeListener(_onLanguageChanged);
+    super.dispose();
   }
 
   String _t(String key) => _uiTranslations[_lang]?[key] ?? _uiTranslations['fr']![key] ?? key;

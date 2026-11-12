@@ -528,54 +528,75 @@ class _HomeState extends State<AccueilPage> with SingleTickerProviderStateMixin 
             backgroundColor: _bg,
             body: Stack(
               children: [
-                // Arrière-plan immersif : la destination à la une, floutée en ambiance,
-                // qui se fond d'une image à l'autre, avec des halos fluides par-dessus.
+                // Nouveau fond éditorial : nuit du désert, lumière sable et profondeur.
                 Positioned.fill(
                   child: IgnorePointer(
-                    child: RepaintBoundary(
-                      child: ValueListenableBuilder<int>(
-                        valueListenable: _heroIndex,
-                        builder: (context, idx, _) {
-                          final String img = pool[idx % pool.length]['image'] as String;
-                          return Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 1800),
-                                child: ImageFiltered(
-                                  key: ValueKey(img),
-                                  imageFilter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
-                                  child: Image.asset(
-                                    img,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Container(color: _bg),
-                                  ),
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFF101B1B),
+                            Color(0xFF10151D),
+                            Color(0xFF171321),
+                            Color(0xFF090D13),
+                          ],
+                          stops: [0.0, 0.38, 0.72, 1.0],
+                        ),
+                      ),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Align(
+                            alignment: const Alignment(-1.15, -0.72),
+                            child: Container(
+                              width: 330,
+                              height: 430,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: RadialGradient(
+                                  colors: [
+                                    Color(0xFFB78A3B).withOpacity(0.24),
+                                    Color(0xFFB78A3B).withOpacity(0.0),
+                                  ],
                                 ),
                               ),
-                              DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [_bg.withOpacity(0.55), _bg.withOpacity(0.8), _bg],
-                                    stops: const [0.0, 0.5, 1.0],
-                                  ),
+                            ),
+                          ),
+                          Align(
+                            alignment: const Alignment(1.1, 0.12),
+                            child: Container(
+                              width: 360,
+                              height: 500,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: RadialGradient(
+                                  colors: [
+                                    Color(0xFF176B68).withOpacity(0.20),
+                                    Color(0xFF176B68).withOpacity(0.0),
+                                  ],
                                 ),
                               ),
-                              AnimatedBuilder(
-                                animation: _aurora,
-                                builder: (context, _) => CustomPaint(
-                                  painter: _AuroraPainter(_aurora.value, [
-                                    _accent,
-                                    const Color(0xFF0F766E),
-                                    const Color(0xFF4C1D95),
-                                    const Color(0xFF9A3412),
-                                  ]),
+                            ),
+                          ),
+                          Align(
+                            alignment: const Alignment(-0.9, 1.0),
+                            child: Container(
+                              width: 330,
+                              height: 430,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: RadialGradient(
+                                  colors: [
+                                    Color(0xFF69427B).withOpacity(0.15),
+                                    Color(0xFF69427B).withOpacity(0.0),
+                                  ],
                                 ),
                               ),
-                            ],
-                          );
-                        },
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -631,10 +652,12 @@ class _HomeState extends State<AccueilPage> with SingleTickerProviderStateMixin 
             delay: 90,
             child: Text(
               t('welcomeEgypt'),
+              textWidthBasis: TextWidthBasis.parent,
+              softWrap: true,
               style: GoogleFonts.playfairDisplay(
                 color: _sand,
-                fontSize: 54,
-                height: 1.02,
+                fontSize: MediaQuery.of(context).size.width < 380 ? 40 : 46,
+                height: 1.08,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -657,60 +680,132 @@ class _HomeState extends State<AccueilPage> with SingleTickerProviderStateMixin 
   }
 
   Widget _buildNav() {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          width: 44,
-          height: 44,
-          padding: const EdgeInsets.all(2),
+        Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [_accent, _accent.withOpacity(0.15)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Container(
+                decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF151824)),
+                alignment: Alignment.center,
+                child: Text(_currentAvatar, style: const TextStyle(fontSize: 20)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'ÉGYPTE',
+                softWrap: false,
+                style: GoogleFonts.cinzel(color: _sand, fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 4),
+              ),
+            ),
+            const SizedBox(width: 12),
+            _settingsButton(),
+          ],
+        ),
+        const SizedBox(height: 18),
+        _langSwitch(),
+      ],
+    );
+  }
+
+  /// Bouton paramètres : pastille ronde à anneau dégradé, comme l'avatar.
+  Widget _settingsButton() {
+    return GestureDetector(
+      onTap: _openSettings,
+      child: Tooltip(
+        message: t('settings'),
+        child: Container(
+          width: 48,
+          height: 48,
+          padding: const EdgeInsets.all(1.5),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(
-              colors: [_accent, _accent.withOpacity(0.15)],
+              colors: [_accent, _accent.withOpacity(0.12)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
           child: Container(
-            decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF151824)),
-            alignment: Alignment.center,
-            child: Text(_currentAvatar, style: const TextStyle(fontSize: 20)),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          'ÉGYPTE',
-          style: GoogleFonts.cinzel(color: _sand, fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 4),
-        ),
-        const Spacer(),
-        _langSwitch(),
-        const SizedBox(width: 10),
-        GestureDetector(
-          onTap: _openSettings,
-          child: Tooltip(
-            message: t('settings'),
-            child: _glass(
-              radius: 24,
-              padding: const EdgeInsets.all(12),
-              child: const Icon(Icons.tune_rounded, color: _sand, size: 20),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF151824),
+              boxShadow: [BoxShadow(color: _accent.withOpacity(0.25), blurRadius: 16)],
             ),
+            alignment: Alignment.center,
+            child: Icon(Icons.tune_rounded, color: _accent, size: 22),
           ),
         ),
-      ],
+      ),
     );
   }
 
+  /// Sélecteur de langue pleine largeur : noms complets, indicateur qui glisse.
   Widget _langSwitch() {
+    // Les noms des langues suivent la langue actuellement sélectionnée.
+    final List<List<String>> langs = _lang == 'en'
+        ? [
+      ['fr', 'French'],
+      ['en', 'English'],
+      ['ar', 'Arabic'],
+    ]
+        : _lang == 'ar'
+        ? [
+      ['fr', 'الفرنسية'],
+      ['en', 'الإنجليزية'],
+      ['ar', 'العربية'],
+    ]
+        : [
+      ['fr', 'Français'],
+      ['en', 'Anglais'],
+      ['ar', 'Arabe'],
+    ];
+    int index = langs.indexWhere((l) => l[0] == _lang);
+    if (index < 0) index = 0;
+
     return _glass(
-      radius: 26,
-      padding: const EdgeInsets.all(4),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _langItem('FR', 'fr'),
-          _langItem('EN', 'en'),
-          _langItem('AR', 'ar'),
-        ],
+      radius: 30,
+      padding: const EdgeInsets.all(5),
+      child: SizedBox(
+        height: 44,
+        child: Stack(
+          children: [
+            AnimatedAlign(
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+              alignment: AlignmentDirectional(index - 1.0, 0),
+              child: FractionallySizedBox(
+                widthFactor: 1 / 3,
+                heightFactor: 1,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: _accent,
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [BoxShadow(color: _accent.withOpacity(0.35), blurRadius: 14)],
+                  ),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                for (final l in langs) Expanded(child: _langItem(l[1], l[0])),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -718,23 +813,17 @@ class _HomeState extends State<AccueilPage> with SingleTickerProviderStateMixin 
   Widget _langItem(String label, String code) {
     final bool selected = _lang == code;
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () => _changerLangue(code),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? _accent : Colors.transparent,
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Text(
-          label,
+      child: Center(
+        child: AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 300),
           style: GoogleFonts.montserrat(
-            color: selected ? _on(_accent) : _sand.withOpacity(0.8),
-            fontSize: 11.5,
+            color: selected ? _on(_accent) : _sand.withOpacity(0.85),
+            fontSize: 13,
             fontWeight: FontWeight.w700,
-            letterSpacing: 0.8,
           ),
+          child: Text(label, softWrap: false),
         ),
       ),
     );
@@ -933,9 +1022,11 @@ class _HomeState extends State<AccueilPage> with SingleTickerProviderStateMixin 
               ),
               if (trailing != null) ...[
                 const SizedBox(width: 12),
-                Text(
-                  trailing,
-                  style: GoogleFonts.montserrat(color: _muted, fontSize: 12, fontWeight: FontWeight.w500),
+                Flexible(
+                  child: Text(
+                    trailing,
+                    style: GoogleFonts.montserrat(color: _muted, fontSize: 12, fontWeight: FontWeight.w500),
+                  ),
                 ),
               ],
             ],
@@ -1071,7 +1162,7 @@ class _HomeState extends State<AccueilPage> with SingleTickerProviderStateMixin 
                       style: GoogleFonts.montserrat(color: _muted, fontSize: 13, height: 1.55),
                     ),
                     const SizedBox(height: 18),
-                    Row(children: [_pill(t('discover'), isRtl)]),
+                    Row(children: [Flexible(child: _pill(t('discover'), isRtl))]),
                   ],
                 ),
               ),
@@ -1150,12 +1241,16 @@ class _HomeState extends State<AccueilPage> with SingleTickerProviderStateMixin 
           children: [
             Icon(icon, size: 16, color: selected ? _on(_accent) : _muted),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: GoogleFonts.montserrat(
-                color: selected ? _on(_accent) : _sand.withOpacity(0.85),
-                fontSize: 13,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 230),
+              child: Text(
+                label,
+                softWrap: true,
+                style: GoogleFonts.montserrat(
+                  color: selected ? _on(_accent) : _sand.withOpacity(0.85),
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                ),
               ),
             ),
           ],
@@ -1170,47 +1265,63 @@ class _HomeState extends State<AccueilPage> with SingleTickerProviderStateMixin 
     final int n = items.length;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 40),
+      padding: const EdgeInsets.only(bottom: 38),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: 46,
+                  height: 46,
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _accent.withOpacity(0.14),
-                    border: Border.all(color: _accent.withOpacity(0.4)),
+                    borderRadius: BorderRadius.circular(16),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [_accent.withOpacity(0.28), _accent.withOpacity(0.07)],
+                    ),
+                    border: Border.all(color: _accent.withOpacity(0.45)),
                   ),
-                  child: Icon(cat['icon'] as IconData, color: _accent, size: 18),
+                  child: Icon(cat['icon'] as IconData, color: _accent, size: 20),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Text(
-                    cat['label'] as String,
-                    style: GoogleFonts.playfairDisplay(
-                      color: _sand,
-                      fontSize: 24,
-                      height: 1.2,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        cat['label'] as String,
+                        softWrap: true,
+                        textWidthBasis: TextWidthBasis.parent,
+                        style: GoogleFonts.playfairDisplay(
+                          color: _sand,
+                          fontSize: 23,
+                          height: 1.18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        '$n ${n > 1 ? t('elements') : t('element')}',
+                        style: GoogleFonts.montserrat(
+                          color: _muted.withOpacity(0.88),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  '$n ${n > 1 ? t('elements') : t('element')}',
-                  style: GoogleFonts.montserrat(color: _muted, fontSize: 12),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 22),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _tileList(items, isRtl),
           ),
         ],
@@ -1236,90 +1347,89 @@ class _HomeState extends State<AccueilPage> with SingleTickerProviderStateMixin 
 
   Widget _tile(Map<String, dynamic> d, bool wide, bool isRtl) {
     final Color c = d['couleur'] as Color;
-
-    if (wide) {
-      return _Pressable(
-        onTap: () => _open(d),
-        child: SizedBox(
-          height: 310,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(34),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                _photo(d['image'] as String),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, _bg.withOpacity(0.92)],
-                      stops: const [0.3, 1.0],
-                    ),
-                  ),
-                ),
-                IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(34),
-                      border: Border.all(color: Colors.white.withOpacity(0.1)),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 22,
-                  right: 22,
-                  bottom: 22,
-                  child: _tileText(d, c),
-                ),
-                Positioned(
-                  top: 18,
-                  left: isRtl ? 18 : null,
-                  right: isRtl ? null : 18,
-                  child: _glass(
-                    radius: 22,
-                    padding: const EdgeInsets.all(10),
-                    child: Icon(
-                      isRtl ? Icons.north_west_rounded : Icons.north_east_rounded,
-                      color: _sand,
-                      size: 18,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
+    final double cardHeight = MediaQuery.of(context).size.width < 380 ? 270 : 310;
 
     return _Pressable(
       onTap: () => _open(d),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
-          ),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: _photo(d['image'] as String),
-                ),
-                Expanded(
-                  flex: 6,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
-                    child: _tileText(d, c),
+      child: SizedBox(
+        height: cardHeight,
+        width: double.infinity,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _photo(d['image'] as String),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.02),
+                      Colors.black.withOpacity(0.12),
+                      const Color(0xFF080D12).withOpacity(0.94),
+                    ],
+                    stops: const [0.0, 0.40, 1.0],
                   ),
                 ),
-              ],
-            ),
+              ),
+              Positioned(
+                top: 16,
+                left: 16,
+                right: 16,
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF080D12).withOpacity(0.55),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(color: Colors.white.withOpacity(0.20)),
+                        ),
+                        child: Text(
+                          (d['region'] as String).toUpperCase(),
+                          softWrap: true,
+                          style: GoogleFonts.montserrat(
+                            color: c,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    _glass(
+                      radius: 22,
+                      padding: const EdgeInsets.all(10),
+                      child: Icon(
+                        isRtl ? Icons.north_west_rounded : Icons.north_east_rounded,
+                        color: _sand,
+                        size: 18,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: 20,
+                child: _tileText(d, c),
+              ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: Colors.white.withOpacity(0.16)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1343,17 +1453,21 @@ class _HomeState extends State<AccueilPage> with SingleTickerProviderStateMixin 
         const SizedBox(height: 8),
         Text(
           d['nom'] as String,
+          softWrap: true,
+          textWidthBasis: TextWidthBasis.parent,
           style: GoogleFonts.playfairDisplay(
             color: _sand,
-            fontSize: 24,
-            height: 1.1,
+            fontSize: 29,
+            height: 1.12,
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           d['description'] as String,
-          style: GoogleFonts.montserrat(color: _muted, fontSize: 12.5, height: 1.5),
+          softWrap: true,
+          textWidthBasis: TextWidthBasis.parent,
+          style: GoogleFonts.montserrat(color: _muted, fontSize: 13, height: 1.55),
         ),
       ],
     );

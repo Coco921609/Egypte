@@ -532,32 +532,47 @@ class _ParametresScreenState extends State<ParametresScreen> {
   // ───────────────────────── Couleur du thème ─────────────────────────
 
   Widget _buildThemeRow() {
-    return Wrap(
-      spacing: 14,
-      runSpacing: 14,
-      children: _themeColors.map((color) {
-        final bool selected = _selectedThemeColor.value == color.value;
-        return GestureDetector(
-          onTap: () => setState(() => _selectedThemeColor = color),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: selected ? Colors.white : Colors.transparent,
-                width: 2.5,
+    return SizedBox(
+      width: double.infinity,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: _themeColors.map((color) {
+          final bool selected = _selectedThemeColor.value == color.value;
+
+          return GestureDetector(
+            onTap: () => setState(() => _selectedThemeColor = color),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected ? Colors.white : Colors.transparent,
+                  width: 2.5,
+                ),
+                boxShadow: selected
+                    ? [
+                  BoxShadow(
+                    color: color.withOpacity(0.6),
+                    blurRadius: 16,
+                    spreadRadius: 2,
+                  ),
+                ]
+                    : [],
               ),
-              boxShadow: selected
-                  ? [BoxShadow(color: color.withOpacity(0.6), blurRadius: 16, spreadRadius: 2)]
-                  : [],
+              child: selected
+                  ? const Icon(
+                Icons.check_rounded,
+                color: Colors.black87,
+                size: 20,
+              )
+                  : null,
             ),
-            child: selected ? const Icon(Icons.check_rounded, color: Colors.black87, size: 22) : null,
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 
