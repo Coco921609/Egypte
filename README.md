@@ -18,33 +18,43 @@ Pour les pages défilantes, le navigateur capture successivement plusieurs posit
 
 > **À savoir :** ces images documentent les écrans réels de l’application. Les états nécessitant une action de l’utilisateur (par exemple ouvrir un menu, modifier un réglage ou saisir une valeur) sont présentés dans leur état de démonstration automatisé ; ils ne sont pas remplacés par des maquettes.
 
+### Galerie des 18 pages — côte à côte
+
+Chaque capture correspond à **une page complète** de l’application. Les deux colonnes permettent de comparer les écrans côte à côte. Cliquez sur une image pour l’ouvrir à sa taille originale et consulter tous les détails sans réduction.
+
+| Écran | Aperçu complet | Écran | Aperçu complet |
+|:---:|:---:|:---:|:---:|
+| **1. Choix de la langue** | <a href="docs/screenshots/01-choix-langue.png"><img src="docs/screenshots/01-choix-langue.png" alt="1. Choix de la langue — page entière" width="100%"></a> | **2. Présentation — Découverte de l’Égypte** | <a href="docs/screenshots/02-presentation-decouverte.png"><img src="docs/screenshots/02-presentation-decouverte.png" alt="2. Présentation — Découverte de l’Égypte — page entière" width="100%"></a> |
+| **3. Présentation — Expériences** | <a href="docs/screenshots/03-presentation-experiences.png"><img src="docs/screenshots/03-presentation-experiences.png" alt="3. Présentation — Expériences — page entière" width="100%"></a> | **4. Présentation — Bienvenue** | <a href="docs/screenshots/04-presentation-bienvenue.png"><img src="docs/screenshots/04-presentation-bienvenue.png" alt="4. Présentation — Bienvenue — page entière" width="100%"></a> |
+| **5. Création du profil** | <a href="docs/screenshots/05-creation-profil.png"><img src="docs/screenshots/05-creation-profil.png" alt="5. Création du profil — page entière" width="100%"></a> | **6. Accueil** | <a href="docs/screenshots/06-accueil.png"><img src="docs/screenshots/06-accueil.png" alt="6. Accueil — page entière" width="100%"></a> |
+| **7. Paramètres** | <a href="docs/screenshots/07-parametres.png"><img src="docs/screenshots/07-parametres.png" alt="7. Paramètres — page entière" width="100%"></a> | **8. Le Caire** | <a href="docs/screenshots/08-le-caire.png"><img src="docs/screenshots/08-le-caire.png" alt="8. Le Caire — page entière" width="100%"></a> |
+| **9. Alexandrie** | <a href="docs/screenshots/09-alexandrie.png"><img src="docs/screenshots/09-alexandrie.png" alt="9. Alexandrie — page entière" width="100%"></a> | **10. Louxor** | <a href="docs/screenshots/10-louxor.png"><img src="docs/screenshots/10-louxor.png" alt="10. Louxor — page entière" width="100%"></a> |
+| **11. Assouan** | <a href="docs/screenshots/11-assouan.png"><img src="docs/screenshots/11-assouan.png" alt="11. Assouan — page entière" width="100%"></a> | **12. Siwa** | <a href="docs/screenshots/12-siwa.png"><img src="docs/screenshots/12-siwa.png" alt="12. Siwa — page entière" width="100%"></a> |
+| **13. Fayoum** | <a href="docs/screenshots/13-fayoum.png"><img src="docs/screenshots/13-fayoum.png" alt="13. Fayoum — page entière" width="100%"></a> | **14. Désert** | <a href="docs/screenshots/14-desert.png"><img src="docs/screenshots/14-desert.png" alt="14. Désert — page entière" width="100%"></a> |
+| **15. Charm el-Cheikh** | <a href="docs/screenshots/15-sharm-el-sheikh.png"><img src="docs/screenshots/15-sharm-el-sheikh.png" alt="15. Charm el-Cheikh — page entière" width="100%"></a> | **16. Hurghada** | <a href="docs/screenshots/16-hurghada.png"><img src="docs/screenshots/16-hurghada.png" alt="16. Hurghada — page entière" width="100%"></a> |
+| **17. Gastronomie égyptienne** | <a href="docs/screenshots/17-gastronomie.png"><img src="docs/screenshots/17-gastronomie.png" alt="17. Gastronomie égyptienne — page entière" width="100%"></a> | **18. Hiéroglyphes égyptiens** | <a href="docs/screenshots/18-hieroglyphes.png"><img src="docs/screenshots/18-hieroglyphes.png" alt="18. Hiéroglyphes égyptiens — page entière" width="100%"></a> |
+
+
+### Détails des écrans
+
+Les descriptions ci-dessous détaillent le contenu de chaque page, dans l’ordre du parcours. Les images complètes sont présentées dans la galerie ci-dessus.
+
 ### 1. Choix de la langue
 
-![Écran complet de choix de la langue](docs/screenshots/01-choix-langue.png)
-
-**Détails de l’écran :**
 - Scène d’ouverture inspirée du Nil, avec une ambiance qui évolue au fil de la journée.
 - Nom de l’application affiché dans la langue sélectionnée.
-- Panneau de sélection des langues.
-- Choix disponibles : français, anglais et arabe.
+- Panneau de sélection des langues : français, anglais et arabe.
 - Question, libellés et bouton de validation adaptés à la langue choisie.
 - Mise en page adaptée à l’écriture de droite à gauche pour l’arabe.
 
 ### 2. Présentation — Découverte de l’Égypte
 
-![Écran complet de présentation - découverte](docs/screenshots/02-presentation-decouverte.png)
-
-**Détails de l’écran :**
 - Première étape de l’accueil introductif.
-- Présentation de l’Égypte et de son univers.
-- Mise en avant de son histoire, de ses sites, de sa culture et des expériences de voyage.
+- Présentation de l’Égypte, de son histoire, de ses sites, de sa culture et des expériences de voyage.
 - Visuel immersif et textes localisés.
 
 ### 3. Présentation — Expériences
 
-![Écran complet de présentation - expériences](docs/screenshots/03-presentation-experiences.png)
-
-**Détails de l’écran :**
 - Deuxième étape du parcours de présentation.
 - Cartes illustrant plusieurs expériences : vallée des Rois, désert, croisière sur le Nil et traditions culinaires.
 - Images, titres et pictogrammes associés à chaque expérience.
@@ -52,9 +62,6 @@ Pour les pages défilantes, le navigateur capture successivement plusieurs posit
 
 ### 4. Présentation — Bienvenue
 
-![Écran complet de présentation - bienvenue](docs/screenshots/04-presentation-bienvenue.png)
-
-**Détails de l’écran :**
 - Dernière étape de la présentation.
 - Message invitant à commencer le voyage.
 - Texte d’introduction et signature de l’univers de l’application.
@@ -62,9 +69,6 @@ Pour les pages défilantes, le navigateur capture successivement plusieurs posit
 
 ### 5. Création du profil
 
-![Écran complet de création du profil](docs/screenshots/05-creation-profil.png)
-
-**Détails de l’écran :**
 - Écran de création du profil utilisateur.
 - Interface localisée en français pour cette capture de référence.
 - Présentation des informations nécessaires au profil.
@@ -72,9 +76,6 @@ Pour les pages défilantes, le navigateur capture successivement plusieurs posit
 
 ### 6. Accueil
 
-![Écran complet de la page d’accueil](docs/screenshots/06-accueil.png)
-
-**Détails de l’écran :**
 - Message de bienvenue et identité visuelle de l’application.
 - En-tête et accès aux paramètres.
 - Sélection de destinations recommandées selon le mois.
@@ -85,123 +86,68 @@ Pour les pages défilantes, le navigateur capture successivement plusieurs posit
 
 ### 7. Paramètres
 
-![Écran complet des paramètres](docs/screenshots/07-parametres.png)
-
-**Détails de l’écran :**
 - Personnalisation du nom et du profil.
 - Choix du genre et de l’avatar.
 - Sélection de la couleur du thème parmi les couleurs proposées.
-- Choix de la langue de l’application : français, anglais ou arabe.
+- Choix de la langue : français, anglais ou arabe.
 - Bouton d’enregistrement des modifications.
 
 ### 8. Le Caire
 
-![Écran complet de la page Le Caire](docs/screenshots/08-le-caire.png)
-
-**Détails de l’écran :**
-- Page consacrée à la capitale égyptienne.
-- Présentation de la destination et de son identité.
-- Contenus, visuels et sections de découverte présents dans la page.
-- Capture verticale complète pour consulter les différentes sections.
+- Page consacrée à la capitale égyptienne : présentation de la destination, visuels et sections de découverte.
+- Capture verticale complète.
 
 ### 9. Alexandrie
 
-![Écran complet de la page Alexandrie](docs/screenshots/09-alexandrie.png)
-
-**Détails de l’écran :**
-- Page consacrée à Alexandrie et à son patrimoine méditerranéen.
-- Présentation de la destination.
-- Images, textes et rubriques de découverte de la page.
+- Page consacrée à Alexandrie et à son patrimoine méditerranéen : présentation, images, textes et rubriques de découverte.
 - Capture verticale complète.
 
 ### 10. Louxor
 
-![Écran complet de la page Louxor](docs/screenshots/10-louxor.png)
-
-**Détails de l’écran :**
-- Page consacrée à Louxor et à son patrimoine antique.
-- Présentation de la destination.
-- Visuels et contenus de découverte.
-- Capture verticale complète de la page.
+- Page consacrée à Louxor et à son patrimoine antique : présentation, visuels et contenus de découverte.
+- Capture verticale complète.
 
 ### 11. Assouan
 
-![Écran complet de la page Assouan](docs/screenshots/11-assouan.png)
-
-**Détails de l’écran :**
-- Page consacrée à Assouan et aux paysages du Nil.
-- Présentation de la destination.
-- Images, textes et différentes sections de la page.
+- Page consacrée à Assouan et aux paysages du Nil : présentation, images, textes et sections.
 - Capture verticale complète.
 
 ### 12. Siwa
 
-![Écran complet de la page Siwa](docs/screenshots/12-siwa.png)
-
-**Détails de l’écran :**
-- Page consacrée à l’oasis de Siwa.
-- Présentation de la destination et de son environnement.
-- Contenus visuels et rubriques de découverte.
+- Page consacrée à l’oasis de Siwa : présentation de la destination, contenus visuels et rubriques de découverte.
 - Capture verticale complète.
 
 ### 13. Fayoum
 
-![Écran complet de la page Fayoum](docs/screenshots/13-fayoum.png)
-
-**Détails de l’écran :**
-- Page consacrée à la région du Fayoum.
-- Présentation de ses paysages et de ses sites naturels.
-- Images, textes et sections de découverte.
-- Capture verticale complète.
+- Page consacrée à la région du Fayoum, à ses paysages et à ses sites naturels.
+- Images, textes et sections de découverte ; capture verticale complète.
 
 ### 14. Désert
 
-![Écran complet de la page Désert](docs/screenshots/14-desert.png)
-
-**Détails de l’écran :**
 - Page consacrée aux paysages désertiques égyptiens.
-- Présentation de l’univers du désert.
-- Visuels et contenus de découverte présents dans la page.
+- Présentation de l’univers du désert, visuels et contenus de découverte.
 - Capture verticale complète.
 
 ### 15. Charm el-Cheikh
 
-![Écran complet de la page Charm el-Cheikh](docs/screenshots/15-sharm-el-sheikh.png)
-
-**Détails de l’écran :**
-- Page consacrée à Charm el-Cheikh et à la mer Rouge.
-- Présentation de la destination.
-- Images, textes et rubriques de découverte.
+- Page consacrée à Charm el-Cheikh et à la mer Rouge : présentation, images, textes et rubriques de découverte.
 - Capture verticale complète.
 
 ### 16. Hurghada
 
-![Écran complet de la page Hurghada](docs/screenshots/16-hurghada.png)
-
-**Détails de l’écran :**
-- Page consacrée à Hurghada.
-- Présentation de la destination et de son littoral.
-- Visuels et contenus de découverte présents dans la page.
+- Page consacrée à Hurghada et à son littoral : présentation, visuels et contenus de découverte.
 - Capture verticale complète.
 
 ### 17. Gastronomie égyptienne
 
-![Écran complet de la page Gastronomie](docs/screenshots/17-gastronomie.png)
-
-**Détails de l’écran :**
-- Page dédiée à la cuisine égyptienne.
-- Présentation des spécialités culinaires.
+- Page dédiée à la cuisine égyptienne et à ses spécialités culinaires.
 - Photographies, textes et contenus consacrés aux saveurs locales.
 - Capture verticale complète.
 
 ### 18. Hiéroglyphes égyptiens
 
-![Écran complet de la page Hiéroglyphes](docs/screenshots/18-hieroglyphes.png)
-
-**Détails de l’écran :**
 - Page dédiée aux hiéroglyphes et à l’écriture de l’Égypte ancienne.
-- Présentation des symboles et de leur univers.
-- Éléments visuels et contenus pédagogiques de la page.
+- Présentation des symboles et de leur univers avec des éléments visuels et pédagogiques.
 - Capture verticale complète.
 
 ### Langues et parcours de navigation
