@@ -1,0 +1,92 @@
+name: Capture real app screenshots
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "lib/**"
+      - "assets/**"
+      - "pubspec.yaml"
+      - ".github/workflows/capture-app-screenshots.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: app-screenshots
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Build the real Flutter application
+        run: |
+          flutter pub get
+          flutter build web --base-href "/Egypte/"
+
+      - name: Install browser tools
+        run: |
+          npm install --no-save playwright http-server
+          npx playwright install --with-deps chromium
+
+      - name: Capture actual application screens
+        run: |
+          mkdir -p docs/screenshots
+          npx http-server build/web -p 4173 -c-1 > /tmp/egypte-server.log 2>&1 &
+          SERVER_PID=$!
+          trap "kill $SERVER_PID || true" EXIT
+          node <<'NODE'
+          const { chromium } = require('playwright');
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const page = await browser.newPage({
+              viewport: { width: 430, height: 932 },
+              deviceScaleFactor: 1,
+              isMobile: true,
+              hasTouch: true,
+            });
+
+            await page.goto('http://127.0.0.1:4173/Egypte/', { waitUntil: 'networkidle' });
+            await page.waitForTimeout(7000);
+            await page.screenshot({ path: 'docs/screenshots/01-choix-langue.png' });
+
+            // The validation button belongs to the real language-selection screen.
+            await page.mouse.click(215, 875);
+            await page.waitForTimeout(2500);
+            await page.screenshot({ path: 'docs/screenshots/02-presentation.png' });
+
+            // Swipe the real Flutter PageView to reveal its next onboarding page.
+            for (let i = 0; i < 2; i++) {
+              await page.mouse.move(365, 500);
+              await page.mouse.down();
+              await page.mouse.move(65, 500, { steps: 18 });
+              await page.mouse.up();
+              await page.waitForTimeout(900);
+              await page.screenshot({
+                path: `docs/screenshots/0${i + 3}-presentation.png`
+              });
+            }
+
+            await browser.close();
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Commit genuine screenshots
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "docs: capture real Flutter app screens"
+          file_pattern: "docs/screenshots/*.png"
