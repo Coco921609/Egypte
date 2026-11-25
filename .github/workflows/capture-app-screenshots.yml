@@ -81,12 +81,21 @@ jobs:
             const presentation = await context.newPage();
             await presentation.goto(BASE + 'presentation', { waitUntil: 'networkidle' });
             await wait(4500);
+            await presentation.getByText('Découvrez l’Égypte', { exact: true }).waitFor({ state: 'visible', timeout: 10000 });
             await presentation.screenshot({ path: 'docs/screenshots/02-presentation-decouverte.png', fullPage: true, animations: 'disabled' });
-            await presentation.mouse.click(345, await presentation.evaluate(() => window.innerHeight - 54));
-            await wait(1800);
+
+            // Click the real onboarding CTA instead of fixed screen coordinates.
+            // Fixed coordinates caused the second click to miss after viewport changes,
+            // producing duplicate images for slides 2 and 3.
+            const nextButton = presentation.getByText('Continuer', { exact: true });
+            await nextButton.click();
+            await presentation.getByText('Vivez des expériences uniques', { exact: true }).waitFor({ state: 'visible', timeout: 10000 });
+            await wait(900);
             await presentation.screenshot({ path: 'docs/screenshots/03-presentation-experiences.png', fullPage: true, animations: 'disabled' });
-            await presentation.mouse.click(345, 878);
-            await wait(1800);
+
+            await presentation.getByText('Continuer', { exact: true }).click();
+            await presentation.getByText('Prêt pour l’aventure ?', { exact: true }).waitFor({ state: 'visible', timeout: 10000 });
+            await wait(900);
             await presentation.screenshot({ path: 'docs/screenshots/04-presentation-bienvenue.png', fullPage: true, animations: 'disabled' });
             await presentation.close();
 
