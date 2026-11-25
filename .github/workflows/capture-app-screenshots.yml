@@ -54,7 +54,7 @@ jobs:
           (async () => {
             const browser = await chromium.launch({ headless: true });
             const context = await browser.newContext({
-              viewport: { width: 430, height: 1600 },
+              viewport: { width: 430, height: 932 },
               deviceScaleFactor: 1,
               isMobile: true,
               hasTouch: true,
