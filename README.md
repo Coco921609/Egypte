@@ -16,23 +16,64 @@ Voici le parcours de découverte de l’application, présenté dans l’ordre r
 
 > Les captures sont réalisées dans un navigateur mobile (430 × 932 px). Chaque fichier correspond à une seule capture d’écran ; aucune série de captures n’est assemblée pour fabriquer une image.
 
-### Schéma visuel du parcours
+### Étapes 1 à 7 — démarrage de l’application
 
-| Étape | Écran réel de l’application | Étape | Écran réel de l’application |
+| Étape | Écran réel | Étape | Écran réel |
 |:---:|:---:|:---:|:---:|
-| **1. Ouverture — choix de la langue** | <a href="docs/screenshots/01-choix-langue.png"><img src="docs/screenshots/01-choix-langue.png" alt="Étape 1 — Choix de la langue" width="100%"></a> | **2. Présentation — découverte** | <a href="docs/screenshots/02-presentation-decouverte.png"><img src="docs/screenshots/02-presentation-decouverte.png" alt="Étape 2 — Découverte de l’Égypte" width="100%"></a> |
-| **3. Présentation — expériences** | <a href="docs/screenshots/03-presentation-experiences.png"><img src="docs/screenshots/03-presentation-experiences.png" alt="Étape 3 — Expériences" width="100%"></a> | **4. Présentation — bienvenue** | <a href="docs/screenshots/04-presentation-bienvenue.png"><img src="docs/screenshots/04-presentation-bienvenue.png" alt="Étape 4 — Bienvenue" width="100%"></a> |
-| **5. Création du profil** | <a href="docs/screenshots/05-creation-profil.png"><img src="docs/screenshots/05-creation-profil.png" alt="Étape 5 — Création du profil" width="100%"></a> | **6. Écran d’accueil** | <a href="docs/screenshots/06-accueil.png"><img src="docs/screenshots/06-accueil.png" alt="Étape 6 — Accueil" width="100%"></a> |
-| **7. Paramètres** | <a href="docs/screenshots/07-parametres.png"><img src="docs/screenshots/07-parametres.png" alt="Étape 7 — Paramètres" width="100%"></a> | **8. Destination — Le Caire** | <a href="docs/screenshots/08-le-caire.png"><img src="docs/screenshots/08-le-caire.png" alt="Étape 8 — Le Caire" width="100%"></a> |
-| **9. Destination — Alexandrie** | <a href="docs/screenshots/09-alexandrie.png"><img src="docs/screenshots/09-alexandrie.png" alt="Étape 9 — Alexandrie" width="100%"></a> | **10. Destination — Louxor** | <a href="docs/screenshots/10-louxor.png"><img src="docs/screenshots/10-louxor.png" alt="Étape 10 — Louxor" width="100%"></a> |
-| **11. Destination — Assouan** | <a href="docs/screenshots/11-assouan.png"><img src="docs/screenshots/11-assouan.png" alt="Étape 11 — Assouan" width="100%"></a> | **12. Destination — Siwa** | <a href="docs/screenshots/12-siwa.png"><img src="docs/screenshots/12-siwa.png" alt="Étape 12 — Siwa" width="100%"></a> |
-| **13. Destination — Fayoum** | <a href="docs/screenshots/13-fayoum.png"><img src="docs/screenshots/13-fayoum.png" alt="Étape 13 — Fayoum" width="100%"></a> | **14. Découverte du désert** | <a href="docs/screenshots/14-desert.png"><img src="docs/screenshots/14-desert.png" alt="Étape 14 — Désert" width="100%"></a> |
-| **15. Destination — Charm el-Cheikh** | <a href="docs/screenshots/15-sharm-el-sheikh.png"><img src="docs/screenshots/15-sharm-el-sheikh.png" alt="Étape 15 — Charm el-Cheikh" width="100%"></a> | **16. Destination — Hurghada** | <a href="docs/screenshots/16-hurghada.png"><img src="docs/screenshots/16-hurghada.png" alt="Étape 16 — Hurghada" width="100%"></a> |
-| **17. Découverte de la gastronomie** | <a href="docs/screenshots/17-gastronomie.png"><img src="docs/screenshots/17-gastronomie.png" alt="Étape 17 — Gastronomie égyptienne" width="100%"></a> | **18. Découverte des hiéroglyphes** | <a href="docs/screenshots/18-hieroglyphes.png"><img src="docs/screenshots/18-hieroglyphes.png" alt="Étape 18 — Hiéroglyphes égyptiens" width="100%"></a> |
+| **1. Choix de la langue** | <a href="docs/screenshots/01-choix-langue.png"><img src="docs/screenshots/01-choix-langue.png" alt="Étape 1 — Choix de la langue" width="100%"></a> | **2. Découverte** | <a href="docs/screenshots/02-presentation-decouverte.png"><img src="docs/screenshots/02-presentation-decouverte.png" alt="Étape 2 — Découverte de l’Égypte" width="100%"></a> |
+| **3. Expériences** | <a href="docs/screenshots/03-presentation-experiences.png"><img src="docs/screenshots/03-presentation-experiences.png" alt="Étape 3 — Expériences" width="100%"></a> | **4. Bienvenue** | <a href="docs/screenshots/04-presentation-bienvenue.png"><img src="docs/screenshots/04-presentation-bienvenue.png" alt="Étape 4 — Bienvenue" width="100%"></a> |
+| **5. Création du profil** | <a href="docs/screenshots/05-creation-profil.png"><img src="docs/screenshots/05-creation-profil.png" alt="Étape 5 — Création du profil" width="100%"></a> | **6. Accueil** | <a href="docs/screenshots/06-accueil.png"><img src="docs/screenshots/06-accueil.png" alt="Étape 6 — Accueil" width="100%"></a> |
+| **7. Paramètres** | <a href="docs/screenshots/07-parametres.png"><img src="docs/screenshots/07-parametres.png" alt="Étape 7 — Paramètres" width="100%"></a> | | |
 
-**Progression :** ouverture et langue → présentation → profil → accueil → paramètres → destinations et découvertes culturelles.
+### Étapes 8 à 18 — destinations et découvertes en grand format
 
-Cliquez sur une image pour l’ouvrir en grand.
+À partir des destinations, chaque capture est affichée **seule sur sa ligne et en grande largeur** pour mieux voir les photos, les textes et tous les détails de chaque page. Cliquez sur une image pour l’ouvrir à sa taille originale.
+
+#### 8. Le Caire
+
+<a href="docs/screenshots/08-le-caire.png"><img src="docs/screenshots/08-le-caire.png" alt="Étape 8 — Le Caire, capture complète" width="100%"></a>
+
+#### 9. Alexandrie
+
+<a href="docs/screenshots/09-alexandrie.png"><img src="docs/screenshots/09-alexandrie.png" alt="Étape 9 — Alexandrie, capture complète" width="100%"></a>
+
+#### 10. Louxor
+
+<a href="docs/screenshots/10-louxor.png"><img src="docs/screenshots/10-louxor.png" alt="Étape 10 — Louxor, capture complète" width="100%"></a>
+
+#### 11. Assouan
+
+<a href="docs/screenshots/11-assouan.png"><img src="docs/screenshots/11-assouan.png" alt="Étape 11 — Assouan, capture complète" width="100%"></a>
+
+#### 12. Siwa
+
+<a href="docs/screenshots/12-siwa.png"><img src="docs/screenshots/12-siwa.png" alt="Étape 12 — Siwa, capture complète" width="100%"></a>
+
+#### 13. Fayoum
+
+<a href="docs/screenshots/13-fayoum.png"><img src="docs/screenshots/13-fayoum.png" alt="Étape 13 — Fayoum, capture complète" width="100%"></a>
+
+#### 14. Désert
+
+<a href="docs/screenshots/14-desert.png"><img src="docs/screenshots/14-desert.png" alt="Étape 14 — Désert, capture complète" width="100%"></a>
+
+#### 15. Charm el-Cheikh
+
+<a href="docs/screenshots/15-sharm-el-sheikh.png"><img src="docs/screenshots/15-sharm-el-sheikh.png" alt="Étape 15 — Charm el-Cheikh, capture complète" width="100%"></a>
+
+#### 16. Hurghada
+
+<a href="docs/screenshots/16-hurghada.png"><img src="docs/screenshots/16-hurghada.png" alt="Étape 16 — Hurghada, capture complète" width="100%"></a>
+
+#### 17. Gastronomie égyptienne
+
+<a href="docs/screenshots/17-gastronomie.png"><img src="docs/screenshots/17-gastronomie.png" alt="Étape 17 — Gastronomie égyptienne, capture complète" width="100%"></a>
+
+#### 18. Hiéroglyphes égyptiens
+
+<a href="docs/screenshots/18-hieroglyphes.png"><img src="docs/screenshots/18-hieroglyphes.png" alt="Étape 18 — Hiéroglyphes égyptiens, capture complète" width="100%"></a>
+
+**Progression :** choix de la langue → présentation → profil → accueil → paramètres → destinations et découvertes culturelles.
 
 ### Détails des écrans
 
