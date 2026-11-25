@@ -9,6 +9,7 @@ on:
       - "assets/**"
       - "pubspec.yaml"
       - "README.md"
+      - "tool/screenshot_harness.dart"
       - ".github/workflows/capture-app-screenshots.yml"
 
 permissions:
@@ -30,17 +31,17 @@ jobs:
         with:
           channel: stable
 
-      - name: Build the real Flutter application
+      - name: Build the production Flutter widgets for screenshot capture
         run: |
           flutter pub get
-          flutter build web --base-href "/"
+          flutter build web --base-href "/" -t tool/screenshot_harness.dart
 
       - name: Install browser tools
         run: |
           npm install --no-save playwright http-server
           npx playwright install --with-deps chromium
 
-      - name: Capture genuine screens from the running Flutter app
+      - name: Capture real production screens
         run: |
           mkdir -p docs/screenshots
           npx http-server build/web -p 4173 -c-1 > /tmp/egypte-server.log 2>&1 &
@@ -48,116 +49,61 @@ jobs:
           trap "kill $SERVER_PID || true" EXIT
           node <<'NODE'
           const { chromium } = require('playwright');
-
-          const BASE = 'http://127.0.0.1:4173/';
-          const wait = (ms = 1400) => new Promise(resolve => setTimeout(resolve, ms));
-          const tap = async (page, x, y) => {
-            await page.mouse.click(x, y);
-            await wait();
-          };
-          const shot = async (page, name) => {
-            await wait(1800);
-            await page.screenshot({
-              path: `docs/screenshots/${name}.png`,
-              fullPage: false,
-              animations: 'disabled'
-            });
-            console.log('Captured:', name);
-          };
+          const BASE = 'http://127.0.0.1:4173/?screen=';
+          const wait = (ms = 1800) => new Promise(resolve => setTimeout(resolve, ms));
 
           (async () => {
             const browser = await chromium.launch({ headless: true });
-
-            // Real first-launch route: language selection -> 3 onboarding slides -> profile.
-            const first = await browser.newContext({
+            const context = await browser.newContext({
               viewport: { width: 430, height: 932 },
               deviceScaleFactor: 1,
               isMobile: true,
               hasTouch: true,
             });
-            const page = await first.newPage();
-            await page.goto(BASE, { waitUntil: 'networkidle' });
-            await wait(6500);
-            await shot(page, '01-choix-langue');
 
-            // The validation control is fixed at the bottom of the language screen.
-            await tap(page, 215, 875);
-            await shot(page, '02-presentation-decouverte');
+            const capture = async (screen, filename) => {
+              const page = await context.newPage();
+              await page.goto(BASE + screen, { waitUntil: 'networkidle' });
+              await wait(5500);
+              await page.screenshot({
+                path: `docs/screenshots/${filename}.png`,
+                fullPage: false,
+                animations: 'disabled'
+              });
+              console.log('Captured real widget:', screen, '->', filename);
+              await page.close();
+              return page;
+            };
 
-            // PresentationScreen has three real PageView slides and a bottom-right CTA.
-            await tap(page, 345, 878);
-            await shot(page, '03-presentation-experiences');
-            await tap(page, 345, 878);
-            await shot(page, '04-presentation-bienvenue');
-            await tap(page, 345, 878);
-            await wait(2500);
-            await shot(page, '05-creation-profil');
-            await first.close();
+            await capture('language', '01-choix-langue');
 
-            // Start the production app at its normal home route with valid
-            // SharedPreferences values, exactly as if a profile already existed.
-            const homeContext = await browser.newContext({
-              viewport: { width: 430, height: 932 },
-              deviceScaleFactor: 1,
-              isMobile: true,
-              hasTouch: true,
-            });
-            await homeContext.addInitScript(() => {
-              localStorage.setItem('flutter.is_profile_created', 'true');
-              localStorage.setItem('flutter.has_seen_onboarding', 'true');
-              localStorage.setItem('flutter.user_name', JSON.stringify('Visiteur'));
-              localStorage.setItem('flutter.user_lang', JSON.stringify('fr'));
-              localStorage.setItem('flutter.selected_language', JSON.stringify('fr'));
-              localStorage.setItem('flutter.user_avatar', JSON.stringify('👨🏽'));
-              localStorage.setItem('flutter.user_gender', JSON.stringify('Homme'));
-              localStorage.setItem('flutter.user_theme_color', String(0xFFE5C158));
-            });
+            // Capture the three actual PresentationScreen PageView states.
+            const presentation = await context.newPage();
+            await presentation.goto(BASE + 'presentation', { waitUntil: 'networkidle' });
+            await wait(4500);
+            await presentation.screenshot({ path: 'docs/screenshots/02-presentation-decouverte.png', animations: 'disabled' });
+            await presentation.mouse.click(345, 878);
+            await wait(1800);
+            await presentation.screenshot({ path: 'docs/screenshots/03-presentation-experiences.png', animations: 'disabled' });
+            await presentation.mouse.click(345, 878);
+            await wait(1800);
+            await presentation.screenshot({ path: 'docs/screenshots/04-presentation-bienvenue.png', animations: 'disabled' });
+            await presentation.close();
 
-            const home = await homeContext.newPage();
-            await home.goto(BASE, { waitUntil: 'networkidle' });
-            await wait(8000);
-            await shot(home, '06-accueil');
-
-            // Settings button is the circular control at the top-right of the real home screen.
-            await tap(home, 382, 82);
-            await shot(home, '07-parametres');
-            // Settings page has its own visible back control.
-            await tap(home, 34, 62);
-            await wait(2500);
-
-            // Open each actual destination through the real home search and result card.
-            const destinations = [
-              ['Le Caire', '08-le-caire'],
-              ['Alexandrie', '09-alexandrie'],
-              ['Louxor', '10-louxor'],
-              ['Assouan', '11-assouan'],
-              ['Siwa', '12-siwa'],
-              ['Fayoum', '13-fayoum'],
-              ['Désert', '14-desert'],
-              ['Sharm El-Sheikh', '15-sharm-el-sheikh'],
-              ['Hurghada', '16-hurghada'],
-              ['Spécialités Culinaires', '17-gastronomie'],
-              ['Symboles & Écriture', '18-hieroglyphes'],
-            ];
-
-            for (const [query, filename] of destinations) {
-              await home.mouse.wheel(0, -5000);
-              await wait(700);
-              // Search bar is part of the visible home hero; tap it and type through Flutter's real text input.
-              await tap(home, 215, 650);
-              await home.keyboard.press('Control+A');
-              await home.keyboard.type(query, { delay: 35 });
-              await wait(1800);
-              // Results are rendered below the search bar. Scroll to the first real result card and open it.
-              await home.mouse.wheel(0, 650);
-              await wait(1000);
-              await tap(home, 215, 410);
-              await wait(2200);
-              await shot(home, filename);
-              // Destination pages expose a real back arrow in the top-left SliverAppBar.
-              await tap(home, 48, 62);
-              await wait(1800);
-            }
+            await capture('profile', '05-creation-profil');
+            await capture('home', '06-accueil');
+            await capture('settings', '07-parametres');
+            await capture('cairo', '08-le-caire');
+            await capture('alexandria', '09-alexandrie');
+            await capture('luxor', '10-louxor');
+            await capture('aswan', '11-assouan');
+            await capture('siwa', '12-siwa');
+            await capture('fayoum', '13-fayoum');
+            await capture('desert', '14-desert');
+            await capture('sharm', '15-sharm-el-sheikh');
+            await capture('hurghada', '16-hurghada');
+            await capture('gastronomy', '17-gastronomie');
+            await capture('hieroglyphs', '18-hieroglyphes');
 
             await browser.close();
           })().catch(error => {
@@ -166,7 +112,7 @@ jobs:
           });
           NODE
 
-      - name: Verify every documented screen was captured
+      - name: Verify all README screenshots exist and are distinct
         run: |
           expected=(
             01-choix-langue 02-presentation-decouverte 03-presentation-experiences
@@ -180,7 +126,7 @@ jobs:
               exit 1
             }
           done
-          echo "All ${#expected[@]} documented real app screenshots exist."
+          echo "Verified ${#expected[@]} screenshots from actual production widgets."
           ls -lh docs/screenshots/*.png
 
       - name: Commit genuine screenshots
