@@ -808,6 +808,22 @@ class _LeCairePageState extends State<LeCairePage>
                   shimmer: _shimmer,
                 ),
               ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: SizedBox(
+                      height: 148,
+                      width: double.infinity,
+                      child: Image.asset(
+                        'assets/images/le caire.jpg',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               SliverPersistentHeader(
                 pinned: true,
                 delegate: _FilterBarDelegate(
