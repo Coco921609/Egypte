@@ -8,6 +8,7 @@ on:
       - "lib/**"
       - "assets/**"
       - "pubspec.yaml"
+      - "README.md"
       - ".github/workflows/capture-app-screenshots.yml"
 
 permissions:
