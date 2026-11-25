@@ -35,7 +35,7 @@ jobs:
 
       - name: Install browser tools
         run: |
-          npm install --no-save playwright http-server
+          npm install --no-save playwright http-server sharp
           npx playwright install --with-deps chromium
 
       - name: Capture real production screens
@@ -46,6 +46,9 @@ jobs:
           trap "kill $SERVER_PID || true" EXIT
           node <<'NODE'
           const { chromium } = require('playwright');
+          const sharp = require('sharp');
+          const crypto = require('crypto');
+          const fs = require('fs');
           const BASE = 'http://127.0.0.1:4173/?screen=';
           const wait = (ms = 1800) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -58,18 +61,51 @@ jobs:
               hasTouch: true,
             });
 
+            // Flutter scroll views do not always increase the browser document
+            // height. Capture successive viewport positions and stitch them into
+            // one tall image so the README shows the complete page, top to bottom.
             const capture = async (screen, filename) => {
               const page = await context.newPage();
               await page.goto(BASE + screen, { waitUntil: 'networkidle' });
               await wait(5500);
-              await page.screenshot({
-                path: `docs/screenshots/${filename}.png`,
-                fullPage: true,
-                animations: 'disabled'
-              });
-              console.log('Captured real widget:', screen, '->', filename);
+
+              const frames = [];
+              const hashes = new Set();
+              let previousHash = '';
+              let repeated = 0;
+              for (let step = 0; step < 45; step++) {
+                const frame = await page.screenshot({ animations: 'disabled' });
+                const hash = crypto.createHash('sha1').update(frame).digest('hex');
+                if (hash === previousHash) repeated++;
+                else repeated = 0;
+                if (repeated >= 2) break;
+                hashes.add(hash);
+                frames.push(frame);
+                await page.mouse.move(215, 760);
+                await page.mouse.wheel(0, 760);
+                await wait(700);
+                previousHash = hash;
+              }
+
+              // Remove the repeated overlap between adjacent viewport captures.
+              const meta = await sharp(frames[0]).metadata();
+              const overlap = 130;
+              const stripHeight = meta.height - overlap;
+                const outputHeight = meta.height + Math.max(0, frames.length - 1) * stripHeight;
+              const layers = [];
+              for (let i = 0; i < frames.length; i++) {
+                const top = i === 0 ? 0 : meta.height + (i - 1) * stripHeight - overlap;
+                const input = i === 0 ? frames[i] : await sharp(frames[i]).extract({
+                  left: 0, top: overlap, width: meta.width, height: stripHeight
+                }).png().toBuffer();
+                layers.push({ input, left: 0, top });
+              }
+              await sharp({ create: { width: meta.width, height: outputHeight, channels: 4, background: '#0E131F' } })
+                .composite(layers)
+                .png()
+                .toFile(`docs/screenshots/${filename}.png`);
+              console.log('Captured full scrollable Flutter page:', screen, '->', filename, '(' + frames.length + ' sections)');
               await page.close();
-              return page;
             };
 
             await capture('language', '01-choix-langue');
