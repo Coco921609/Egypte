@@ -10,34 +10,33 @@ Découvrez l’Égypte autrement avec une application pensée pour vous accompag
 
 Que vous prépariez votre premier séjour ou que vous souhaitiez simplement découvrir les merveilles égyptiennes, l’application vous invite à explorer le pays à votre rythme.
 
-## 📲 Aperçu réel de l’application
+## 📲 Parcours de l’application — étape par étape
 
-Cette section présente le parcours de l’application **écran par écran**, dans l’ordre où un visiteur la découvre. Les captures sont prises depuis les véritables widgets Flutter du projet, exécutés dans Chromium avec un format mobile de **430 × 932 px**.
+Voici le parcours de découverte de l’application, présenté dans l’ordre réel : **une étape, une image unique**. Chaque image provient d’un écran Flutter du projet. Les captures sont affichées côte à côte pour suivre facilement la progression.
 
-Pour les pages défilantes, le navigateur capture successivement plusieurs positions de défilement puis assemble les images en une seule capture verticale. L’image finale montre ainsi le contenu du haut jusqu’en bas, y compris lorsque Flutter conserve le défilement à l’intérieur de son propre écran. Les écrans de présentation sont capturés séparément pour montrer chacune des trois étapes.
+> Les captures sont réalisées dans un navigateur mobile (430 × 932 px). Chaque fichier correspond à une seule capture d’écran ; aucune série de captures n’est assemblée pour fabriquer une image.
 
-> **À savoir :** ces images documentent les écrans réels de l’application. Les états nécessitant une action de l’utilisateur (par exemple ouvrir un menu, modifier un réglage ou saisir une valeur) sont présentés dans leur état de démonstration automatisé ; ils ne sont pas remplacés par des maquettes.
+### Schéma visuel du parcours
 
-### Galerie des 18 pages — côte à côte
-
-Chaque capture correspond à **une page complète** de l’application. Les deux colonnes permettent de comparer les écrans côte à côte. Cliquez sur une image pour l’ouvrir à sa taille originale et consulter tous les détails sans réduction.
-
-| Écran | Aperçu complet | Écran | Aperçu complet |
+| Étape | Écran réel de l’application | Étape | Écran réel de l’application |
 |:---:|:---:|:---:|:---:|
-| **1. Choix de la langue** | <a href="docs/screenshots/01-choix-langue.png"><img src="docs/screenshots/01-choix-langue.png" alt="1. Choix de la langue — page entière" width="100%"></a> | **2. Présentation — Découverte de l’Égypte** | <a href="docs/screenshots/02-presentation-decouverte.png"><img src="docs/screenshots/02-presentation-decouverte.png" alt="2. Présentation — Découverte de l’Égypte — page entière" width="100%"></a> |
-| **3. Présentation — Expériences** | <a href="docs/screenshots/03-presentation-experiences.png"><img src="docs/screenshots/03-presentation-experiences.png" alt="3. Présentation — Expériences — page entière" width="100%"></a> | **4. Présentation — Bienvenue** | <a href="docs/screenshots/04-presentation-bienvenue.png"><img src="docs/screenshots/04-presentation-bienvenue.png" alt="4. Présentation — Bienvenue — page entière" width="100%"></a> |
-| **5. Création du profil** | <a href="docs/screenshots/05-creation-profil.png"><img src="docs/screenshots/05-creation-profil.png" alt="5. Création du profil — page entière" width="100%"></a> | **6. Accueil** | <a href="docs/screenshots/06-accueil.png"><img src="docs/screenshots/06-accueil.png" alt="6. Accueil — page entière" width="100%"></a> |
-| **7. Paramètres** | <a href="docs/screenshots/07-parametres.png"><img src="docs/screenshots/07-parametres.png" alt="7. Paramètres — page entière" width="100%"></a> | **8. Le Caire** | <a href="docs/screenshots/08-le-caire.png"><img src="docs/screenshots/08-le-caire.png" alt="8. Le Caire — page entière" width="100%"></a> |
-| **9. Alexandrie** | <a href="docs/screenshots/09-alexandrie.png"><img src="docs/screenshots/09-alexandrie.png" alt="9. Alexandrie — page entière" width="100%"></a> | **10. Louxor** | <a href="docs/screenshots/10-louxor.png"><img src="docs/screenshots/10-louxor.png" alt="10. Louxor — page entière" width="100%"></a> |
-| **11. Assouan** | <a href="docs/screenshots/11-assouan.png"><img src="docs/screenshots/11-assouan.png" alt="11. Assouan — page entière" width="100%"></a> | **12. Siwa** | <a href="docs/screenshots/12-siwa.png"><img src="docs/screenshots/12-siwa.png" alt="12. Siwa — page entière" width="100%"></a> |
-| **13. Fayoum** | <a href="docs/screenshots/13-fayoum.png"><img src="docs/screenshots/13-fayoum.png" alt="13. Fayoum — page entière" width="100%"></a> | **14. Désert** | <a href="docs/screenshots/14-desert.png"><img src="docs/screenshots/14-desert.png" alt="14. Désert — page entière" width="100%"></a> |
-| **15. Charm el-Cheikh** | <a href="docs/screenshots/15-sharm-el-sheikh.png"><img src="docs/screenshots/15-sharm-el-sheikh.png" alt="15. Charm el-Cheikh — page entière" width="100%"></a> | **16. Hurghada** | <a href="docs/screenshots/16-hurghada.png"><img src="docs/screenshots/16-hurghada.png" alt="16. Hurghada — page entière" width="100%"></a> |
-| **17. Gastronomie égyptienne** | <a href="docs/screenshots/17-gastronomie.png"><img src="docs/screenshots/17-gastronomie.png" alt="17. Gastronomie égyptienne — page entière" width="100%"></a> | **18. Hiéroglyphes égyptiens** | <a href="docs/screenshots/18-hieroglyphes.png"><img src="docs/screenshots/18-hieroglyphes.png" alt="18. Hiéroglyphes égyptiens — page entière" width="100%"></a> |
+| **1. Ouverture — choix de la langue** | <a href="docs/screenshots/01-choix-langue.png"><img src="docs/screenshots/01-choix-langue.png" alt="Étape 1 — Choix de la langue" width="100%"></a> | **2. Présentation — découverte** | <a href="docs/screenshots/02-presentation-decouverte.png"><img src="docs/screenshots/02-presentation-decouverte.png" alt="Étape 2 — Découverte de l’Égypte" width="100%"></a> |
+| **3. Présentation — expériences** | <a href="docs/screenshots/03-presentation-experiences.png"><img src="docs/screenshots/03-presentation-experiences.png" alt="Étape 3 — Expériences" width="100%"></a> | **4. Présentation — bienvenue** | <a href="docs/screenshots/04-presentation-bienvenue.png"><img src="docs/screenshots/04-presentation-bienvenue.png" alt="Étape 4 — Bienvenue" width="100%"></a> |
+| **5. Création du profil** | <a href="docs/screenshots/05-creation-profil.png"><img src="docs/screenshots/05-creation-profil.png" alt="Étape 5 — Création du profil" width="100%"></a> | **6. Écran d’accueil** | <a href="docs/screenshots/06-accueil.png"><img src="docs/screenshots/06-accueil.png" alt="Étape 6 — Accueil" width="100%"></a> |
+| **7. Paramètres** | <a href="docs/screenshots/07-parametres.png"><img src="docs/screenshots/07-parametres.png" alt="Étape 7 — Paramètres" width="100%"></a> | **8. Destination — Le Caire** | <a href="docs/screenshots/08-le-caire.png"><img src="docs/screenshots/08-le-caire.png" alt="Étape 8 — Le Caire" width="100%"></a> |
+| **9. Destination — Alexandrie** | <a href="docs/screenshots/09-alexandrie.png"><img src="docs/screenshots/09-alexandrie.png" alt="Étape 9 — Alexandrie" width="100%"></a> | **10. Destination — Louxor** | <a href="docs/screenshots/10-louxor.png"><img src="docs/screenshots/10-louxor.png" alt="Étape 10 — Louxor" width="100%"></a> |
+| **11. Destination — Assouan** | <a href="docs/screenshots/11-assouan.png"><img src="docs/screenshots/11-assouan.png" alt="Étape 11 — Assouan" width="100%"></a> | **12. Destination — Siwa** | <a href="docs/screenshots/12-siwa.png"><img src="docs/screenshots/12-siwa.png" alt="Étape 12 — Siwa" width="100%"></a> |
+| **13. Destination — Fayoum** | <a href="docs/screenshots/13-fayoum.png"><img src="docs/screenshots/13-fayoum.png" alt="Étape 13 — Fayoum" width="100%"></a> | **14. Découverte du désert** | <a href="docs/screenshots/14-desert.png"><img src="docs/screenshots/14-desert.png" alt="Étape 14 — Désert" width="100%"></a> |
+| **15. Destination — Charm el-Cheikh** | <a href="docs/screenshots/15-sharm-el-sheikh.png"><img src="docs/screenshots/15-sharm-el-sheikh.png" alt="Étape 15 — Charm el-Cheikh" width="100%"></a> | **16. Destination — Hurghada** | <a href="docs/screenshots/16-hurghada.png"><img src="docs/screenshots/16-hurghada.png" alt="Étape 16 — Hurghada" width="100%"></a> |
+| **17. Découverte de la gastronomie** | <a href="docs/screenshots/17-gastronomie.png"><img src="docs/screenshots/17-gastronomie.png" alt="Étape 17 — Gastronomie égyptienne" width="100%"></a> | **18. Découverte des hiéroglyphes** | <a href="docs/screenshots/18-hieroglyphes.png"><img src="docs/screenshots/18-hieroglyphes.png" alt="Étape 18 — Hiéroglyphes égyptiens" width="100%"></a> |
 
+**Progression :** ouverture et langue → présentation → profil → accueil → paramètres → destinations et découvertes culturelles.
+
+Cliquez sur une image pour l’ouvrir en grand.
 
 ### Détails des écrans
 
-Les descriptions ci-dessous détaillent le contenu de chaque page, dans l’ordre du parcours. Les images complètes sont présentées dans la galerie ci-dessus.
+Les descriptions ci-dessous détaillent le contenu de chaque page, dans l’ordre du parcours. Les images correspondantes sont présentées dans le schéma du parcours ci-dessus.
 
 ### 1. Choix de la langue
 
@@ -158,9 +157,9 @@ Le parcours documenté suit l’ordre suivant : choix de la langue → présenta
 
 ### Mise à jour automatique des captures
 
-Les captures sont générées par GitHub Actions à partir du code Flutter du dépôt, avec le fichier de démonstration `tool/screenshot_harness.dart`, Playwright et l’assemblage des captures dans Chromium. Le workflow se lance lors d’une mise à jour de la branche `main` (sauf lorsqu’il s’agit uniquement des captures) ou manuellement depuis l’onglet **Actions**.
+Les captures sont générées automatiquement par GitHub Actions à partir du code Flutter du dépôt, avec le fichier de démonstration `tool/screenshot_harness.dart` et Playwright dans Chromium. Chaque écran est enregistré dans son propre fichier PNG. Le workflow se lance lors d’une mise à jour de la branche `main` (sauf lorsqu’il s’agit uniquement des captures) ou manuellement depuis l’onglet **Actions**.
 
-Les images sont enregistrées dans `docs/screenshots/` et le workflow vérifie la présence des 18 fichiers avant de les valider dans le dépôt. Les captures correspondent à un rendu navigateur mobile de l’application Flutter, et non à des photographies prises sur un téléphone physique.
+Les images sont enregistrées dans `docs/screenshots/`. Le workflow vérifie la présence des 18 fichiers et contrôle qu’ils ne sont pas identiques avant de les valider dans le dépôt. Les captures correspondent à un rendu navigateur mobile de l’application Flutter, et non à des photographies prises sur un téléphone physique.
 
 ## 🏛️ Destinations à découvrir
 
