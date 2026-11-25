@@ -32,7 +32,7 @@ jobs:
       - name: Build the real Flutter application
         run: |
           flutter pub get
-          flutter build web --base-href "/Egypte/"
+          flutter build web --base-href "/"
 
       - name: Install browser tools
         run: |
@@ -57,7 +57,7 @@ jobs:
               hasTouch: true,
             });
 
-            await page.goto('http://127.0.0.1:4173/Egypte/', { waitUntil: 'networkidle' });
+            await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
             await page.waitForTimeout(7000);
             await page.screenshot({ path: 'docs/screenshots/01-choix-langue.png' });
 
