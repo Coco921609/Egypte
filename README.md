@@ -10,6 +10,14 @@ Découvrez l’Égypte autrement avec une application pensée pour vous accompag
 
 Que vous prépariez votre premier séjour ou que vous souhaitiez simplement découvrir les merveilles égyptiennes, l’application vous invite à explorer le pays à votre rythme.
 
+## 📲 Aperçu du design de l’application
+
+Découvrez un aperçu visuel de l’interface mobile : accueil immersif, navigation entre les destinations et découverte de la gastronomie égyptienne.
+
+![Aperçu du design de l’application Égypte](docs/aperçu-interface.svg)
+
+<sub>Maquette illustrative réalisée à partir de la structure Flutter et des images du projet. Elle présente l’esprit graphique de l’application et ne constitue pas une capture d’écran native.</sub>
+
 ## 🏛️ Destinations à découvrir
 
 L’application présente plusieurs régions et destinations d’Égypte :
