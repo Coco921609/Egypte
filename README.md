@@ -35,6 +35,8 @@ L’application présente plusieurs régions et destinations d’Égypte :
 | ![Siwa](assets/images/siwa.jpeg) | ![Fayoum](assets/images/fayoum.jpeg) |
 | **Le désert** | **Charm el-Cheikh** |
 | ![Le désert](assets/images/R.jpg) | ![Charm el-Cheikh](assets/images/sharm.jpg) |
+| **Hurghada** | |
+| ![Hurghada](assets/hurgada/ile.jpg) | |
 
 ## 🌍 Fonctionnalités
 
