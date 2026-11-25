@@ -54,7 +54,7 @@ jobs:
           (async () => {
             const browser = await chromium.launch({ headless: true });
             const context = await browser.newContext({
-              viewport: { width: 430, height: 932 },
+              viewport: { width: 430, height: 1600 },
               deviceScaleFactor: 1,
               isMobile: true,
               hasTouch: true,
@@ -82,7 +82,7 @@ jobs:
             await presentation.goto(BASE + 'presentation', { waitUntil: 'networkidle' });
             await wait(4500);
             await presentation.screenshot({ path: 'docs/screenshots/02-presentation-decouverte.png', fullPage: true, animations: 'disabled' });
-            await presentation.mouse.click(345, 878);
+            await presentation.mouse.click(345, await presentation.evaluate(() => window.innerHeight - 54));
             await wait(1800);
             await presentation.screenshot({ path: 'docs/screenshots/03-presentation-experiences.png', fullPage: true, animations: 'disabled' });
             await presentation.mouse.click(345, 878);
