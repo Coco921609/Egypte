@@ -93,6 +93,13 @@ Egypte/
 └── README.md          # Présentation du projet
 ```
 
+## 📱 Télécharger l’application
+
+| Plateforme | Accès |
+|---|---|
+| **Android** | [Télécharger sur Google Play](https://play.google.com/store/apps/details?id=com.egypte) |
+| **iPhone / iPad (version Web)** | [Ouvrir l’application sur GitHub Pages](https://coco921609.github.io/Egypte/) |
+
 ## 🔗 Liens
 
 - **Dépôt GitHub :** [Coco921609/Egypte](https://github.com/Coco921609/Egypte)
