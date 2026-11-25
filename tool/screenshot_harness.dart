@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../lib/langues.dart';
+import '../lib/langues.dart' show LanguesPage;
 import '../lib/presentation.dart';
-import '../lib/profil.dart';
-import '../lib/accueil.dart';
+import '../lib/profil.dart' show ProfileScreen;
+import '../lib/accueil.dart' show AccueilScreen;
 import '../lib/parametres.dart';
 import '../lib/le caire.dart';
 import '../lib/alexandrie.dart';
