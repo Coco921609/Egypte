@@ -14,7 +14,7 @@ Que vous prépariez votre premier séjour ou que vous souhaitiez simplement déc
 
 Cette section présente le parcours de l’application **écran par écran**, dans l’ordre où un visiteur la découvre. Les captures sont prises depuis les véritables widgets Flutter du projet, exécutés dans Chromium avec un format mobile de **430 × 932 px**.
 
-Chaque capture utilise le mode **pleine page** (*fullPage*) : la hauteur de l’image suit le contenu vertical de l’écran afin de montrer la page entière, et pas seulement la partie visible au premier affichage. Les écrans de présentation sont capturés séparément pour montrer chacune des trois étapes.
+Pour les pages défilantes, le navigateur capture successivement plusieurs positions de défilement puis assemble les images en une seule capture verticale. L’image finale montre ainsi le contenu du haut jusqu’en bas, y compris lorsque Flutter conserve le défilement à l’intérieur de son propre écran. Les écrans de présentation sont capturés séparément pour montrer chacune des trois étapes.
 
 > **À savoir :** ces images documentent les écrans réels de l’application. Les états nécessitant une action de l’utilisateur (par exemple ouvrir un menu, modifier un réglage ou saisir une valeur) sont présentés dans leur état de démonstration automatisé ; ils ne sont pas remplacés par des maquettes.
 
@@ -212,7 +212,7 @@ Le parcours documenté suit l’ordre suivant : choix de la langue → présenta
 
 ### Mise à jour automatique des captures
 
-Les captures sont générées par GitHub Actions à partir du code Flutter du dépôt, avec le fichier de démonstration `tool/screenshot_harness.dart` et Playwright dans Chromium. Le workflow se lance lors d’une mise à jour de la branche `main` (sauf lorsqu’il s’agit uniquement des captures) ou manuellement depuis l’onglet **Actions**.
+Les captures sont générées par GitHub Actions à partir du code Flutter du dépôt, avec le fichier de démonstration `tool/screenshot_harness.dart`, Playwright et l’assemblage des captures dans Chromium. Le workflow se lance lors d’une mise à jour de la branche `main` (sauf lorsqu’il s’agit uniquement des captures) ou manuellement depuis l’onglet **Actions**.
 
 Les images sont enregistrées dans `docs/screenshots/` et le workflow vérifie la présence des 18 fichiers avant de les valider dans le dépôt. Les captures correspondent à un rendu navigateur mobile de l’application Flutter, et non à des photographies prises sur un téléphone physique.
 
