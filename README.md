@@ -12,17 +12,30 @@ Que vous prépariez votre premier séjour ou que vous souhaitiez simplement déc
 
 ## 📲 Aperçu réel de l’application
 
-Les images ci-dessous sont des captures d’écran de l’application Flutter exécutée dans un navigateur mobile, et non des maquettes dessinées.
+Cette galerie présente des captures réalisées automatiquement depuis l’application Flutter exécutée dans Chromium au format mobile. Le workflow suit le parcours de navigation réel : choix de la langue, présentation, création du profil, accueil, paramètres et ouverture des différentes rubriques.
 
-| Choix de la langue | Présentation – découverte |
-|:---:|:---:|
-| ![Écran réel de choix de la langue](docs/screenshots/01-choix-langue.png) | ![Écran réel de présentation](docs/screenshots/02-presentation.png) |
+| Écran | Capture réelle |
+|---|---|
+| Choix de la langue | ![Choix de la langue](docs/screenshots/01-choix-langue.png) |
+| Présentation – découverte | ![Présentation découverte](docs/screenshots/02-presentation-decouverte.png) |
+| Présentation – expériences | ![Présentation expériences](docs/screenshots/03-presentation-experiences.png) |
+| Présentation – bienvenue | ![Présentation bienvenue](docs/screenshots/04-presentation-bienvenue.png) |
+| Création du profil | ![Création du profil](docs/screenshots/05-creation-profil.png) |
+| Accueil | ![Accueil](docs/screenshots/06-accueil.png) |
+| Paramètres | ![Paramètres](docs/screenshots/07-parametres.png) |
+| Le Caire | ![Le Caire](docs/screenshots/08-le-caire.png) |
+| Alexandrie | ![Alexandrie](docs/screenshots/09-alexandrie.png) |
+| Louxor | ![Louxor](docs/screenshots/10-louxor.png) |
+| Assouan | ![Assouan](docs/screenshots/11-assouan.png) |
+| Siwa | ![Siwa](docs/screenshots/12-siwa.png) |
+| Fayoum | ![Fayoum](docs/screenshots/13-fayoum.png) |
+| Désert | ![Désert](docs/screenshots/14-desert.png) |
+| Charm el-Cheikh | ![Charm el-Cheikh](docs/screenshots/15-sharm-el-sheikh.png) |
+| Hurghada | ![Hurghada](docs/screenshots/16-hurghada.png) |
+| Gastronomie | ![Gastronomie](docs/screenshots/17-gastronomie.png) |
+| Hiéroglyphes | ![Hiéroglyphes](docs/screenshots/18-hieroglyphes.png) |
 
-| Présentation – expériences | Présentation – bienvenue |
-|:---:|:---:|
-| ![Écran réel des expériences](docs/screenshots/03-presentation.png) | ![Écran réel de fin de présentation](docs/screenshots/04-presentation.png) |
-
-Les captures sont générées automatiquement depuis le code Flutter lors de l’exécution du workflow GitHub Actions. Elles sont actualisées lorsque le code de l’application ou ses ressources changent.
+Les images sont générées par GitHub Actions à partir du vrai code de l’application. Elles ne sont pas des maquettes ni des illustrations de remplacement. Le workflow vérifie également qu’au moins 18 fichiers de capture ont été produits avant de les enregistrer dans le dépôt.
 
 ## 🏛️ Destinations à découvrir
 
