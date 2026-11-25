@@ -42,6 +42,9 @@ jobs:
           name: github-pages-${{ github.run_attempt }}
           path: 'build/web'
 
+      - name: Wait for Pages artifact metadata
+        run: sleep 15
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
