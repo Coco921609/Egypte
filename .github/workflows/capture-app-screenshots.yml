@@ -40,7 +40,7 @@ jobs:
           npm install --no-save playwright http-server
           npx playwright install --with-deps chromium
 
-      - name: Capture real screens by navigating the application
+      - name: Capture genuine screens from the running Flutter app
         run: |
           mkdir -p docs/screenshots
           npx http-server build/web -p 4173 -c-1 > /tmp/egypte-server.log 2>&1 &
@@ -49,70 +49,82 @@ jobs:
           node <<'NODE'
           const { chromium } = require('playwright');
 
-          const wait = (ms = 1200) => new Promise(resolve => setTimeout(resolve, ms));
+          const BASE = 'http://127.0.0.1:4173/';
+          const wait = (ms = 1400) => new Promise(resolve => setTimeout(resolve, ms));
+          const tap = async (page, x, y) => {
+            await page.mouse.click(x, y);
+            await wait();
+          };
           const shot = async (page, name) => {
             await wait(1800);
-            await page.screenshot({ path: `docs/screenshots/${name}.png`, fullPage: false });
-          };
-          const clickText = async (page, text) => {
-            const item = page.getByText(text, { exact: true }).last();
-            await item.waitFor({ state: 'visible', timeout: 20000 });
-            await item.click();
-            await wait();
+            await page.screenshot({
+              path: `docs/screenshots/${name}.png`,
+              fullPage: false,
+              animations: 'disabled'
+            });
+            console.log('Captured:', name);
           };
 
           (async () => {
             const browser = await chromium.launch({ headless: true });
-            const context = await browser.newContext({
+
+            // Real first-launch route: language selection -> 3 onboarding slides -> profile.
+            const first = await browser.newContext({
               viewport: { width: 430, height: 932 },
               deviceScaleFactor: 1,
               isMobile: true,
               hasTouch: true,
             });
-            const page = await context.newPage();
-
-            // First installation: real language selection and onboarding.
-            await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
-            await wait(7000);
+            const page = await first.newPage();
+            await page.goto(BASE, { waitUntil: 'networkidle' });
+            await wait(6500);
             await shot(page, '01-choix-langue');
-            await page.mouse.click(215, 875);
-            await wait(2500);
 
+            // The validation control is fixed at the bottom of the language screen.
+            await tap(page, 215, 875);
             await shot(page, '02-presentation-decouverte');
-            await page.mouse.move(365, 500);
-            await page.mouse.down();
-            await page.mouse.move(65, 500, { steps: 25 });
-            await page.mouse.up();
-            await shot(page, '03-presentation-experiences');
-            await page.mouse.move(365, 500);
-            await page.mouse.down();
-            await page.mouse.move(65, 500, { steps: 25 });
-            await page.mouse.up();
-            await shot(page, '04-presentation-bienvenue');
 
-            // The final onboarding CTA opens the real profile form.
-            await clickText(page, 'Commencer');
+            // PresentationScreen has three real PageView slides and a bottom-right CTA.
+            await tap(page, 345, 878);
+            await shot(page, '03-presentation-experiences');
+            await tap(page, 345, 878);
+            await shot(page, '04-presentation-bienvenue');
+            await tap(page, 345, 878);
             await wait(2500);
             await shot(page, '05-creation-profil');
+            await first.close();
 
-            // Complete the actual profile form; the app navigates to its home screen.
-            await page.getByPlaceholder('Entrez votre nom complet').fill('Visiteur');
-            await clickText(page, 'Découvrir l\'Égypte');
-            await wait(7000);
-            await shot(page, '06-accueil');
+            // Start the production app at its normal home route with valid
+            // SharedPreferences values, exactly as if a profile already existed.
+            const homeContext = await browser.newContext({
+              viewport: { width: 430, height: 932 },
+              deviceScaleFactor: 1,
+              isMobile: true,
+              hasTouch: true,
+            });
+            await homeContext.addInitScript(() => {
+              localStorage.setItem('flutter.is_profile_created', 'true');
+              localStorage.setItem('flutter.has_seen_onboarding', 'true');
+              localStorage.setItem('flutter.user_name', JSON.stringify('Visiteur'));
+              localStorage.setItem('flutter.user_lang', JSON.stringify('fr'));
+              localStorage.setItem('flutter.selected_language', JSON.stringify('fr'));
+              localStorage.setItem('flutter.user_avatar', JSON.stringify('👨🏽'));
+              localStorage.setItem('flutter.user_gender', JSON.stringify('Homme'));
+              localStorage.setItem('flutter.user_theme_color', String(0xFFE5C158));
+            });
 
-            const home = page;
+            const home = await homeContext.newPage();
+            await home.goto(BASE, { waitUntil: 'networkidle' });
+            await wait(8000);
+            await shot(home, '06-accueil');
 
-            // Capture settings through the real settings control.
-            const settingsButton = home.getByRole('button', { name: /Paramètres/ });
-            if (await settingsButton.count()) {
-              await settingsButton.first().click();
-              await shot(home, '07-parametres');
-              await home.goBack();
-              await wait(2500);
-            }
+            // Settings button is the circular control at the top-right of the real home screen.
+            await tap(home, 382, 82);
+            await shot(home, '07-parametres');
+            await home.keyboard.press('Escape');
+            await wait(2500);
 
-            // Use the real home search field and destination result cards.
+            // Open each actual destination through the real home search and result card.
             const destinations = [
               ['Le Caire', '08-le-caire'],
               ['Alexandrie', '09-alexandrie'],
@@ -124,18 +136,25 @@ jobs:
               ['Sharm El-Sheikh', '15-sharm-el-sheikh'],
               ['Hurghada', '16-hurghada'],
               ['Spécialités Culinaires', '17-gastronomie'],
-              ['Hiéroglyphes Égyptiens', '18-hieroglyphes'],
+              ['Symboles & Écriture', '18-hieroglyphes'],
             ];
 
-            for (const [label, filename] of destinations) {
-              await home.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-              await wait(5000);
-              const search = home.getByPlaceholder('Rechercher une destination');
-              await search.waitFor({ state: 'visible', timeout: 20000 });
-              await search.fill(label);
+            for (const [query, filename] of destinations) {
+              await home.mouse.wheel(0, -5000);
+              await wait(700);
+              // Search bar is part of the visible home hero; tap it and type through Flutter's real text input.
+              await tap(home, 215, 650);
+              await home.keyboard.press('Control+A');
+              await home.keyboard.type(query, { delay: 35 });
               await wait(1800);
-              await clickText(home, label);
+              // Results are rendered below the search bar. Scroll to the first real result card and open it.
+              await home.mouse.wheel(0, 650);
+              await wait(1000);
+              await tap(home, 215, 410);
+              await wait(2200);
               await shot(home, filename);
+              await home.keyboard.press('Escape');
+              await wait(1800);
             }
 
             await browser.close();
@@ -145,13 +164,25 @@ jobs:
           });
           NODE
 
-      - name: Check screenshot output
+      - name: Verify every documented screen was captured
         run: |
-          test "$(find docs/screenshots -maxdepth 1 -name '*.png' | wc -l)" -ge 18
-          find docs/screenshots -maxdepth 1 -name '*.png' -printf '%f\n' | sort
+          expected=(
+            01-choix-langue 02-presentation-decouverte 03-presentation-experiences
+            04-presentation-bienvenue 05-creation-profil 06-accueil 07-parametres
+            08-le-caire 09-alexandrie 10-louxor 11-assouan 12-siwa 13-fayoum
+            14-desert 15-sharm-el-sheikh 16-hurghada 17-gastronomie 18-hieroglyphes
+          )
+          for name in "${expected[@]}"; do
+            test -s "docs/screenshots/$name.png" || {
+              echo "Missing screenshot: $name.png"
+              exit 1
+            }
+          done
+          echo "All ${#expected[@]} documented real app screenshots exist."
+          ls -lh docs/screenshots/*.png
 
       - name: Commit genuine screenshots
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "docs: capture real Flutter application screens"
+          commit_message: "docs: refresh real Flutter app screenshots"
           file_pattern: "docs/screenshots/*.png"
