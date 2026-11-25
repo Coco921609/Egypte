@@ -78,25 +78,58 @@ jobs:
             await capture('language', '01-choix-langue');
 
             // Capture the three actual PresentationScreen PageView states.
+            // Flutter Web text is not always exposed as ordinary DOM text, so
+            // navigate with the real bottom CTA and verify each resulting image.
             const presentation = await context.newPage();
             await presentation.goto(BASE + 'presentation', { waitUntil: 'networkidle' });
-            await wait(4500);
-            await presentation.getByText('Découvrez l’Égypte', { exact: true }).waitFor({ state: 'visible', timeout: 10000 });
-            await presentation.screenshot({ path: 'docs/screenshots/02-presentation-decouverte.png', fullPage: true, animations: 'disabled' });
+            await wait(5000);
 
-            // Click the real onboarding CTA instead of fixed screen coordinates.
-            // Fixed coordinates caused the second click to miss after viewport changes,
-            // producing duplicate images for slides 2 and 3.
-            const nextButton = presentation.getByText('Continuer', { exact: true });
-            await nextButton.click();
-            await presentation.getByText('Vivez des expériences uniques', { exact: true }).waitFor({ state: 'visible', timeout: 10000 });
-            await wait(900);
-            await presentation.screenshot({ path: 'docs/screenshots/03-presentation-experiences.png', fullPage: true, animations: 'disabled' });
+            const slideFiles = [
+              'docs/screenshots/02-presentation-decouverte.png',
+              'docs/screenshots/03-presentation-experiences.png',
+              'docs/screenshots/04-presentation-bienvenue.png'
+            ];
+            const fileHash = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 
-            await presentation.getByText('Continuer', { exact: true }).click();
-            await presentation.getByText('Prêt pour l’aventure ?', { exact: true }).waitFor({ state: 'visible', timeout: 10000 });
-            await wait(900);
-            await presentation.screenshot({ path: 'docs/screenshots/04-presentation-bienvenue.png', fullPage: true, animations: 'disabled' });
+            await presentation.screenshot({
+              path: slideFiles[0],
+              fullPage: true,
+              animations: 'disabled'
+            });
+
+            const advanceSlide = async (targetFile, previousFile) => {
+              const tapY = await presentation.evaluate(() => window.innerHeight - 55);
+              await presentation.mouse.click(345, tapY);
+              await wait(1400);
+              await presentation.screenshot({
+                path: targetFile,
+                fullPage: true,
+                animations: 'disabled'
+              });
+
+              // If the CTA tap did not change the page, use a real horizontal
+              // swipe on the PageView as a robust mobile interaction fallback.
+              if (fileHash(targetFile) === fileHash(previousFile)) {
+                const midY = Math.round((await presentation.evaluate(() => window.innerHeight)) / 2);
+                await presentation.mouse.move(360, midY);
+                await presentation.mouse.down();
+                await presentation.mouse.move(70, midY, { steps: 12 });
+                await presentation.mouse.up();
+                await wait(1600);
+                await presentation.screenshot({
+                  path: targetFile,
+                  fullPage: true,
+                  animations: 'disabled'
+                });
+              }
+
+              if (fileHash(targetFile) === fileHash(previousFile)) {
+                throw new Error(`Onboarding did not advance: ${targetFile}`);
+              }
+            };
+
+            await advanceSlide(slideFiles[1], slideFiles[0]);
+            await advanceSlide(slideFiles[2], slideFiles[1]);
             await presentation.close();
 
             await capture('profile', '05-creation-profil');
