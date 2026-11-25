@@ -121,7 +121,8 @@ jobs:
             // Settings button is the circular control at the top-right of the real home screen.
             await tap(home, 382, 82);
             await shot(home, '07-parametres');
-            await home.keyboard.press('Escape');
+            // Settings page has its own visible back control.
+            await tap(home, 34, 62);
             await wait(2500);
 
             // Open each actual destination through the real home search and result card.
@@ -153,7 +154,8 @@ jobs:
               await tap(home, 215, 410);
               await wait(2200);
               await shot(home, filename);
-              await home.keyboard.press('Escape');
+              // Destination pages expose a real back arrow in the top-left SliverAppBar.
+              await tap(home, 48, 62);
               await wait(1800);
             }
 
