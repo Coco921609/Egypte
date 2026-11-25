@@ -64,7 +64,7 @@ jobs:
               await wait(5500);
               await page.screenshot({
                 path: `docs/screenshots/${filename}.png`,
-                fullPage: false,
+                fullPage: true,
                 animations: 'disabled'
               });
               console.log('Captured real widget:', screen, '->', filename);
@@ -78,13 +78,13 @@ jobs:
             const presentation = await context.newPage();
             await presentation.goto(BASE + 'presentation', { waitUntil: 'networkidle' });
             await wait(4500);
-            await presentation.screenshot({ path: 'docs/screenshots/02-presentation-decouverte.png', animations: 'disabled' });
+            await presentation.screenshot({ path: 'docs/screenshots/02-presentation-decouverte.png', fullPage: true, animations: 'disabled' });
             await presentation.mouse.click(345, 878);
             await wait(1800);
-            await presentation.screenshot({ path: 'docs/screenshots/03-presentation-experiences.png', animations: 'disabled' });
+            await presentation.screenshot({ path: 'docs/screenshots/03-presentation-experiences.png', fullPage: true, animations: 'disabled' });
             await presentation.mouse.click(345, 878);
             await wait(1800);
-            await presentation.screenshot({ path: 'docs/screenshots/04-presentation-bienvenue.png', animations: 'disabled' });
+            await presentation.screenshot({ path: 'docs/screenshots/04-presentation-bienvenue.png', fullPage: true, animations: 'disabled' });
             await presentation.close();
 
             await capture('profile', '05-creation-profil');
