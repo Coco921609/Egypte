@@ -10,13 +10,19 @@ Découvrez l’Égypte autrement avec une application pensée pour vous accompag
 
 Que vous prépariez votre premier séjour ou que vous souhaitiez simplement découvrir les merveilles égyptiennes, l’application vous invite à explorer le pays à votre rythme.
 
-## 📲 Aperçu du design de l’application
+## 📲 Aperçu réel de l’application
 
-Découvrez un aperçu visuel de l’interface mobile : accueil immersif, navigation entre les destinations et découverte de la gastronomie égyptienne.
+Les images ci-dessous sont des captures d’écran de l’application Flutter exécutée dans un navigateur mobile, et non des maquettes dessinées.
 
-![Aperçu du design de l’application Égypte](docs/aperçu-interface.svg)
+| Choix de la langue | Présentation – découverte |
+|:---:|:---:|
+| ![Écran réel de choix de la langue](docs/screenshots/01-choix-langue.png) | ![Écran réel de présentation](docs/screenshots/02-presentation.png) |
 
-<sub>Maquette illustrative réalisée à partir de la structure Flutter et des images du projet. Elle présente l’esprit graphique de l’application et ne constitue pas une capture d’écran native.</sub>
+| Présentation – expériences | Présentation – bienvenue |
+|:---:|:---:|
+| ![Écran réel des expériences](docs/screenshots/03-presentation.png) | ![Écran réel de fin de présentation](docs/screenshots/04-presentation.png) |
+
+Les captures sont générées automatiquement depuis le code Flutter lors de l’exécution du workflow GitHub Actions. Elles sont actualisées lorsque le code de l’application ou ses ressources changent.
 
 ## 🏛️ Destinations à découvrir
 
