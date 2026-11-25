@@ -39,7 +39,7 @@ jobs:
           npm install --no-save playwright http-server
           npx playwright install --with-deps chromium
 
-      - name: Capture actual application screens
+      - name: Capture real screens by navigating the application
         run: |
           mkdir -p docs/screenshots
           npx http-server build/web -p 4173 -c-1 > /tmp/egypte-server.log 2>&1 &
@@ -48,34 +48,108 @@ jobs:
           node <<'NODE'
           const { chromium } = require('playwright');
 
+          const wait = (ms = 1200) => new Promise(resolve => setTimeout(resolve, ms));
+          const shot = async (page, name) => {
+            await wait(1800);
+            await page.screenshot({ path: `docs/screenshots/${name}.png`, fullPage: false });
+          };
+          const clickText = async (page, text) => {
+            const item = page.getByText(text, { exact: true }).last();
+            await item.waitFor({ state: 'visible', timeout: 20000 });
+            await item.click();
+            await wait();
+          };
+
           (async () => {
             const browser = await chromium.launch({ headless: true });
-            const page = await browser.newPage({
+            const context = await browser.newContext({
               viewport: { width: 430, height: 932 },
               deviceScaleFactor: 1,
               isMobile: true,
               hasTouch: true,
             });
+            const page = await context.newPage();
 
+            // First installation: real language selection and onboarding.
             await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
-            await page.waitForTimeout(7000);
-            await page.screenshot({ path: 'docs/screenshots/01-choix-langue.png' });
-
-            // The validation button belongs to the real language-selection screen.
+            await wait(7000);
+            await shot(page, '01-choix-langue');
             await page.mouse.click(215, 875);
-            await page.waitForTimeout(2500);
-            await page.screenshot({ path: 'docs/screenshots/02-presentation.png' });
+            await wait(2500);
 
-            // Swipe the real Flutter PageView to reveal its next onboarding page.
-            for (let i = 0; i < 2; i++) {
-              await page.mouse.move(365, 500);
-              await page.mouse.down();
-              await page.mouse.move(65, 500, { steps: 18 });
-              await page.mouse.up();
-              await page.waitForTimeout(900);
-              await page.screenshot({
-                path: `docs/screenshots/0${i + 3}-presentation.png`
-              });
+            await shot(page, '02-presentation-decouverte');
+            await page.mouse.move(365, 500);
+            await page.mouse.down();
+            await page.mouse.move(65, 500, { steps: 25 });
+            await page.mouse.up();
+            await shot(page, '03-presentation-experiences');
+            await page.mouse.move(365, 500);
+            await page.mouse.down();
+            await page.mouse.move(65, 500, { steps: 25 });
+            await page.mouse.up();
+            await shot(page, '04-presentation-bienvenue');
+
+            // Complete the actual profile form.
+            await page.getByPlaceholder('Entrez votre nom complet').fill('Visiteur');
+            await clickText(page, 'Créer mon profil');
+            await shot(page, '05-creation-profil');
+
+            // A fresh context with the same SharedPreferences values opens
+            // the production home screen through main.dart's real startup logic.
+            const homeContext = await browser.newContext({
+              viewport: { width: 430, height: 932 },
+              deviceScaleFactor: 1,
+              isMobile: true,
+              hasTouch: true,
+            });
+            await homeContext.addInitScript(() => {
+              localStorage.setItem('flutter.is_profile_created', 'true');
+              localStorage.setItem('flutter.has_seen_onboarding', 'true');
+              localStorage.setItem('flutter.user_name', JSON.stringify('Visiteur'));
+              localStorage.setItem('flutter.user_lang', JSON.stringify('fr'));
+              localStorage.setItem('flutter.selected_language', JSON.stringify('fr'));
+              localStorage.setItem('flutter.user_avatar', JSON.stringify('👨🏽'));
+              localStorage.setItem('flutter.user_gender', JSON.stringify('Homme'));
+              localStorage.setItem('flutter.user_theme_color', String(0xFFE5C158));
+            });
+            const home = await homeContext.newPage();
+            await home.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+            await wait(8000);
+            await shot(home, '06-accueil');
+
+            // Capture settings through the real settings control.
+            const settingsButton = home.getByRole('button', { name: /Paramètres/ });
+            if (await settingsButton.count()) {
+              await settingsButton.first().click();
+              await shot(home, '07-parametres');
+              await home.goBack();
+              await wait(2500);
+            }
+
+            // Use the real home search field and destination result cards.
+            const destinations = [
+              ['Le Caire', '08-le-caire'],
+              ['Alexandrie', '09-alexandrie'],
+              ['Louxor', '10-louxor'],
+              ['Assouan', '11-assouan'],
+              ['Siwa', '12-siwa'],
+              ['Fayoum', '13-fayoum'],
+              ['Désert', '14-desert'],
+              ['Sharm El-Sheikh', '15-sharm-el-sheikh'],
+              ['Hurghada', '16-hurghada'],
+              ['Spécialités Culinaires', '17-gastronomie'],
+              ['Hiéroglyphes Égyptiens', '18-hieroglyphes'],
+            ];
+
+            for (const [label, filename] of destinations) {
+              await home.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
+              await wait(5000);
+              const search = home.getByPlaceholder('Rechercher une destination');
+              await search.waitFor({ state: 'visible', timeout: 20000 });
+              await search.fill(label);
+              await wait(1800);
+              await clickText(home, label);
+              await shot(home, filename);
             }
 
             await browser.close();
@@ -85,8 +159,13 @@ jobs:
           });
           NODE
 
+      - name: Check screenshot output
+        run: |
+          test "$(find docs/screenshots -maxdepth 1 -name '*.png' | wc -l)" -ge 18
+          find docs/screenshots -maxdepth 1 -name '*.png' -printf '%f\n' | sort
+
       - name: Commit genuine screenshots
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "docs: capture real Flutter app screens"
+          commit_message: "docs: capture real Flutter application screens"
           file_pattern: "docs/screenshots/*.png"
