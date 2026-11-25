@@ -46,7 +46,6 @@ jobs:
           trap "kill $SERVER_PID || true" EXIT
           node <<'NODE'
           const { chromium } = require('playwright');
-          const sharp = require('sharp');
           const crypto = require('crypto');
           const fs = require('fs');
           const BASE = 'http://127.0.0.1:4173/?screen=';
@@ -61,50 +60,18 @@ jobs:
               hasTouch: true,
             });
 
-            // Flutter scroll views do not always increase the browser document
-            // height. Capture successive viewport positions and stitch them into
-            // one tall image so the README shows the complete page, top to bottom.
+            // Exactly one fresh screenshot per app page. Never stitch scroll frames
+            // together: this prevents repeated viewport sections in a single image.
             const capture = async (screen, filename) => {
               const page = await context.newPage();
               await page.goto(BASE + screen, { waitUntil: 'networkidle' });
               await wait(5500);
-
-              const frames = [];
-              const hashes = new Set();
-              let previousHash = '';
-              let repeated = 0;
-              for (let step = 0; step < 45; step++) {
-                const frame = await page.screenshot({ animations: 'disabled' });
-                const hash = crypto.createHash('sha1').update(frame).digest('hex');
-                if (hash === previousHash) repeated++;
-                else repeated = 0;
-                if (repeated >= 2) break;
-                hashes.add(hash);
-                frames.push(frame);
-                await page.mouse.move(215, 760);
-                await page.mouse.wheel(0, 760);
-                await wait(700);
-                previousHash = hash;
-              }
-
-              // Remove the repeated overlap between adjacent viewport captures.
-              const meta = await sharp(frames[0]).metadata();
-              const overlap = 130;
-              const stripHeight = meta.height - overlap;
-                const outputHeight = meta.height + Math.max(0, frames.length - 1) * stripHeight;
-              const layers = [];
-              for (let i = 0; i < frames.length; i++) {
-                const top = i === 0 ? 0 : meta.height + (i - 1) * stripHeight - overlap;
-                const input = i === 0 ? frames[i] : await sharp(frames[i]).extract({
-                  left: 0, top: overlap, width: meta.width, height: stripHeight
-                }).png().toBuffer();
-                layers.push({ input, left: 0, top });
-              }
-              await sharp({ create: { width: meta.width, height: outputHeight, channels: 4, background: '#0E131F' } })
-                .composite(layers)
-                .png()
-                .toFile(`docs/screenshots/${filename}.png`);
-              console.log('Captured full scrollable Flutter page:', screen, '->', filename, '(' + frames.length + ' sections)');
+              await page.screenshot({
+                path: `docs/screenshots/${filename}.png`,
+                fullPage: true,
+                animations: 'disabled'
+              });
+              console.log('Captured one unique page image:', screen, '->', filename);
               await page.close();
             };
 
@@ -159,7 +126,17 @@ jobs:
               exit 1
             }
           done
-          echo "Verified ${#expected[@]} screenshots from actual production widgets."
+          # Reject identical files: each app page must have its own screenshot.
+          declare -A hashes
+          for name in "${expected[@]}"; do
+            hash=$(sha256sum "docs/screenshots/$name.png" | cut -d ' ' -f 1)
+            if [[ -n "${hashes[$hash]:-}" ]]; then
+              echo "Duplicate screenshot: $name.png matches ${hashes[$hash]}.png"
+              exit 1
+            fi
+            hashes[$hash]="$name"
+          done
+          echo "Verified ${#expected[@]} distinct screenshots, one image per page."
           ls -lh docs/screenshots/*.png
 
       - name: Commit genuine screenshots
