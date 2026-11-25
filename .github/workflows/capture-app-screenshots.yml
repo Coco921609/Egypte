@@ -89,33 +89,18 @@ jobs:
             await page.mouse.up();
             await shot(page, '04-presentation-bienvenue');
 
-            // Complete the actual profile form.
-            await page.getByPlaceholder('Entrez votre nom complet').fill('Visiteur');
-            await clickText(page, 'Créer mon profil');
+            // The final onboarding CTA opens the real profile form.
+            await clickText(page, 'Commencer');
+            await wait(2500);
             await shot(page, '05-creation-profil');
 
-            // A fresh context with the same SharedPreferences values opens
-            // the production home screen through main.dart's real startup logic.
-            const homeContext = await browser.newContext({
-              viewport: { width: 430, height: 932 },
-              deviceScaleFactor: 1,
-              isMobile: true,
-              hasTouch: true,
-            });
-            await homeContext.addInitScript(() => {
-              localStorage.setItem('flutter.is_profile_created', 'true');
-              localStorage.setItem('flutter.has_seen_onboarding', 'true');
-              localStorage.setItem('flutter.user_name', JSON.stringify('Visiteur'));
-              localStorage.setItem('flutter.user_lang', JSON.stringify('fr'));
-              localStorage.setItem('flutter.selected_language', JSON.stringify('fr'));
-              localStorage.setItem('flutter.user_avatar', JSON.stringify('👨🏽'));
-              localStorage.setItem('flutter.user_gender', JSON.stringify('Homme'));
-              localStorage.setItem('flutter.user_theme_color', String(0xFFE5C158));
-            });
-            const home = await homeContext.newPage();
-            await home.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
-            await wait(8000);
-            await shot(home, '06-accueil');
+            // Complete the actual profile form; the app navigates to its home screen.
+            await page.getByPlaceholder('Entrez votre nom complet').fill('Visiteur');
+            await clickText(page, 'Découvrir l\'Égypte');
+            await wait(7000);
+            await shot(page, '06-accueil');
+
+            const home = page;
 
             // Capture settings through the real settings control.
             const settingsButton = home.getByRole('button', { name: /Paramètres/ });
