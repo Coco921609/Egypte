@@ -1,26 +1,53 @@
+import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui' as ui;
+import 'dart:ui' show FontFeature, ImageFilter;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-// ─────────────────────────────────────────────────────────────
-//  PALETTE « OR & NUIT »
-// ─────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════
+//  PALETTE « MINUIT & OR » : noir bleuté, verre dépoli, or chaud
+// ═════════════════════════════════════════════════════════════
 class _C {
-  static const bg = Color(0xFF0C0A09);
-  static const surface = Color(0xFF14100C);
-  static const gold = Color(0xFFD9B77A);
-  static const goldLight = Color(0xFFF1DFB4);
-  static const goldDeep = Color(0xFFA8823F);
-  static const cream = Color(0xFFF4ECDF);
-  static const ink = Color(0xFF16110A);
+  // Fonds
+  static const bg = Color(0xFF090A0F);
+  static const surface = Color(0xFF13151C);
+  static const surfaceHi = Color(0xFF1B1E28);
+
+  // Textes
+  static const text = Color(0xFFF6F4EF);
+  static const textSoft = Color(0xFFA4A8B4);
+  static const textDim = Color(0xFF6C707D);
+
+  // Or
+  static const gold = Color(0xFFE9BC6E);
+  static const goldLight = Color(0xFFF7DDA4);
+  static const goldDeep = Color(0xFFC08A35);
+  static const onGold = Color(0xFF1A1206);
+
+  // Ciel (carte du soleil)
+  static const night = Color(0xFF0B1226);
+  static const day = Color(0xFF3A5280);
+  static const glow = Color(0xFF9A5A1E);
+
+  // États du quiz
+  static const good = Color(0xFF5CCB9B);
+  static const bad = Color(0xFFEE6A6A);
+
+  // Filets très fins
+  static const line = Color(0x1AFFFFFF);
+
+  static const LinearGradient goldGrad = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[goldLight, gold, goldDeep],
+  );
 }
 
-// --- 1. CLASSE DE DÉFILEMENT WEB ---
 class WebScrollBehavior extends MaterialScrollBehavior {
   @override
   Set<PointerDeviceKind> get dragDevices => {
@@ -30,29 +57,1347 @@ class WebScrollBehavior extends MaterialScrollBehavior {
   };
 }
 
-/// Petite icône qui s'inverse automatiquement en contexte RTL
-/// (remplace le paramètre `matchTextDirection`, qui n'existe pas sur [Icon]).
-class _DirectionalIcon extends StatelessWidget {
-  final IconData icon;
-  final double size;
-  final Color color;
-  const _DirectionalIcon(
-      this.icon, {
-        required this.size,
-        required this.color,
-      });
+// ═════════════════════════════════════════════════════════════
+//  STYLES
+// ═════════════════════════════════════════════════════════════
+double _ls(BuildContext c, double v) =>
+    Directionality.of(c) == TextDirection.rtl ? 0 : v;
+
+/// Titres : sans-serif épaisse, serrée.
+TextStyle _display(BuildContext c, double size,
+    {Color color = _C.text,
+      FontWeight weight = FontWeight.w700,
+      double height = 1.12,
+      double ls = -0.6}) =>
+    TextStyle(
+      fontSize: size,
+      fontWeight: weight,
+      color: color,
+      height: height,
+      letterSpacing: _ls(c, ls),
+    );
+
+/// Petites étiquettes.
+TextStyle _label(BuildContext c,
+    {double size = 11.5,
+      Color color = _C.textSoft,
+      double ls = 0.8,
+      FontWeight weight = FontWeight.w600}) =>
+    TextStyle(
+      fontSize: size,
+      fontWeight: weight,
+      color: color,
+      letterSpacing: _ls(c, ls),
+    );
+
+TextStyle _body(double size,
+    {Color color = _C.text,
+      double height = 1.6,
+      FontWeight weight = FontWeight.w400}) =>
+    TextStyle(fontSize: size, color: color, height: height, fontWeight: weight);
+
+/// Chiffres : largeur fixe pour que les horloges ne « tremblent » pas.
+TextStyle _num(double size,
+    {Color color = _C.text,
+      FontWeight weight = FontWeight.w600,
+      double ls = 0}) =>
+    TextStyle(
+      fontSize: size,
+      color: color,
+      fontWeight: weight,
+      letterSpacing: ls,
+      height: 1.05,
+      fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+    );
+
+// ═════════════════════════════════════════════════════════════
+//  HEURE D'ALEXANDRIE ET CALCUL DU SOLEIL
+// ═════════════════════════════════════════════════════════════
+
+/// Heure d'été égyptienne (depuis 2023) : du dernier vendredi d'avril
+/// au dernier jeudi d'octobre, en UTC+3. Sinon UTC+2.
+bool _egyptDst(DateTime utc) {
+  DateTime lastOf(int month, int weekday) {
+    var d = DateTime.utc(utc.year, month + 1, 0);
+    while (d.weekday != weekday) {
+      d = d.subtract(const Duration(days: 1));
+    }
+    return d;
+  }
+
+  final DateTime start = lastOf(4, DateTime.friday);
+  final DateTime end =
+  lastOf(10, DateTime.thursday).add(const Duration(days: 1));
+  return utc.isAfter(start) && utc.isBefore(end);
+}
+
+/// Convertit un instant UTC en heure locale d'Alexandrie (fields = heure locale).
+DateTime _toLocal(DateTime utc) =>
+    utc.add(Duration(hours: _egyptDst(utc) ? 3 : 2));
+
+String _two(int v) => v.toString().padLeft(2, '0');
+
+String _hm(DateTime utc) {
+  final DateTime c = _toLocal(utc);
+  return '${_two(c.hour)}:${_two(c.minute)}';
+}
+
+String _hms(Duration d) {
+  final int s = d.inSeconds < 0 ? 0 : d.inSeconds;
+  return '${_two(s ~/ 3600)}:${_two((s % 3600) ~/ 60)}:${_two(s % 60)}';
+}
+
+class _SunDay {
+  final DateTime rise; // instant UTC
+  final DateTime set; // instant UTC
+  const _SunDay(this.rise, this.set);
+}
+
+/// Lever et coucher du soleil à Alexandrie pour une date (algorithme solaire
+/// simplifié, précision de quelques minutes).
+_SunDay _sunDay(DateTime cairoDate) {
+  const double latDeg = 31.2001;
+  const double lonDeg = 29.9187;
+  final double lat = latDeg * math.pi / 180;
+  final DateTime d =
+  DateTime.utc(cairoDate.year, cairoDate.month, cairoDate.day);
+  final int n = d.difference(DateTime.utc(d.year, 1, 1)).inDays + 1;
+  final double g = 2 * math.pi / 365 * (n - 1);
+  final double eqTime = 229.18 *
+      (0.000075 +
+          0.001868 * math.cos(g) -
+          0.032077 * math.sin(g) -
+          0.014615 * math.cos(2 * g) -
+          0.040849 * math.sin(2 * g));
+  final double decl = 0.006918 -
+      0.399912 * math.cos(g) +
+      0.070257 * math.sin(g) -
+      0.006758 * math.cos(2 * g) +
+      0.000907 * math.sin(2 * g) -
+      0.002697 * math.cos(3 * g) +
+      0.00148 * math.sin(3 * g);
+  final double zen = 90.833 * math.pi / 180;
+  final double cosHa = (math.cos(zen) / (math.cos(lat) * math.cos(decl))) -
+      math.tan(lat) * math.tan(decl);
+  final double haDeg = math.acos(cosHa.clamp(-1.0, 1.0)) * 180 / math.pi;
+  final double riseMin = 720 - 4 * (lonDeg + haDeg) - eqTime;
+  final double setMin = 720 - 4 * (lonDeg - haDeg) - eqTime;
+  return _SunDay(
+    d.add(Duration(seconds: (riseMin * 60).round())),
+    d.add(Duration(seconds: (setMin * 60).round())),
+  );
+}
+
+class _Golden {
+  final bool live; // heure dorée en cours
+  final Duration until; // temps avant la prochaine heure dorée
+  final _SunDay today;
+  final double dayP; // 0 → 1 entre lever et coucher, -1 la nuit
+  const _Golden(this.live, this.until, this.today, this.dayP);
+}
+
+_Golden _goldenNow(DateTime nowUtc) {
+  final DateTime cairo = _toLocal(nowUtc);
+  final _SunDay today = _sunDay(cairo);
+  final _SunDay tomorrow = _sunDay(cairo.add(const Duration(days: 1)));
+  final DateTime goldToday = today.set.subtract(const Duration(hours: 1));
+  final bool isDay =
+      !nowUtc.isBefore(today.rise) && nowUtc.isBefore(today.set);
+  final double dayP = isDay
+      ? nowUtc.difference(today.rise).inSeconds /
+      today.set.difference(today.rise).inSeconds
+      : -1;
+  if (isDay && !nowUtc.isBefore(goldToday)) {
+    return _Golden(true, Duration.zero, today, dayP);
+  }
+  final DateTime nextGold = nowUtc.isBefore(goldToday)
+      ? goldToday
+      : tomorrow.set.subtract(const Duration(hours: 1));
+  return _Golden(false, nextGold.difference(nowUtc), today, dayP);
+}
+
+/// Couleur de la carte du soleil : nuit bleue, lueur chaude à l'aube et au
+/// crépuscule, bleu profond en plein jour, ambre pendant l'heure dorée.
+Color _solarColor(_Golden g, DateTime nowUtc) {
+  if (g.dayP < 0) {
+    final int mins = math.min(
+      nowUtc.difference(g.today.set).inMinutes.abs(),
+      nowUtc.difference(g.today.rise).inMinutes.abs(),
+    );
+    final double glow = (1 - mins / 50).clamp(0.0, 1.0);
+    return Color.lerp(_C.night, _C.glow, glow * 0.8)!;
+  }
+  final double sunHigh = math.sin(math.pi * g.dayP);
+  final Color base = Color.lerp(const Color(0xFF1B2440), _C.day, sunHigh)!;
+  return g.live ? Color.lerp(base, _C.glow, 0.85)! : base;
+}
+
+enum _OptState { idle, right, wrong, faded }
+
+// ═════════════════════════════════════════════════════════════
+//  PETITS COMPOSANTS
+// ═════════════════════════════════════════════════════════════
+
+/// Effet « ressort » discret quand on appuie : rend tout tactile et vivant.
+class _Press extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  final double scale;
+  const _Press({required this.child, this.onTap, this.scale = 0.96});
+
+  @override
+  State<_Press> createState() => _PressState();
+}
+
+class _PressState extends State<_Press> {
+  bool _down = false;
+
+  void _set(bool v) {
+    if (_down != v) setState(() => _down = v);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final isRtl = Directionality.of(context) == TextDirection.rtl;
-    return Transform(
-      alignment: Alignment.center,
-      transform: isRtl ? Matrix4.rotationY(math.pi) : Matrix4.identity(),
-      child: Icon(icon, size: size, color: color),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => _set(true),
+      onTapUp: (_) => _set(false),
+      onTapCancel: () => _set(false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _down ? widget.scale : 1,
+        duration: const Duration(milliseconds: 130),
+        curve: Curves.easeOutCubic,
+        child: widget.child,
+      ),
     );
   }
 }
 
+/// Verre dépoli : flou de l'arrière-plan + voile + filet lumineux.
+class _Glass extends StatelessWidget {
+  final Widget child;
+  final double radius;
+  final EdgeInsetsGeometry padding;
+  final double blur;
+  final Color tint;
+  final double? width;
+  final double? height;
+  const _Glass({
+    required this.child,
+    this.radius = 20,
+    this.padding = EdgeInsets.zero,
+    this.blur = 18,
+    this.tint = const Color(0x4D000000),
+    this.width,
+    this.height,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: Container(
+          width: width,
+          height: height,
+          padding: padding,
+          decoration: BoxDecoration(
+            color: tint,
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(color: const Color(0x26FFFFFF), width: 0.8),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+/// Bouton rond (retour, favori…) : verre sur les photos, plein ailleurs.
+class _CircleBtn extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool active;
+  final bool solid;
+  final double size;
+  const _CircleBtn({
+    required this.icon,
+    required this.onTap,
+    this.active = false,
+    this.solid = false,
+    this.size = 44,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget ic = AnimatedSwitcher(
+      duration: const Duration(milliseconds: 220),
+      transitionBuilder: (Widget c, Animation<double> a) =>
+          ScaleTransition(scale: a, child: c),
+      child: Icon(
+        icon,
+        key: ValueKey<IconData>(icon),
+        color: active ? _C.gold : _C.text,
+        size: size * 0.46,
+      ),
+    );
+    return _Press(
+      onTap: onTap,
+      child: solid
+          ? Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: _C.surfaceHi,
+          border: Border.all(color: _C.line),
+        ),
+        child: ic,
+      )
+          : _Glass(
+        radius: size / 2,
+        width: size,
+        height: size,
+        child: Center(child: ic),
+      ),
+    );
+  }
+}
+
+/// Bouton principal doré (ou secondaire sombre).
+class _GoldButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool filled;
+  final double height;
+  const _GoldButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.filled = true,
+    this.height = 58,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color fg = filled ? _C.onGold : _C.text;
+    return _Press(
+      onTap: onTap,
+      child: Container(
+        height: height,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        decoration: BoxDecoration(
+          gradient: filled ? _C.goldGrad : null,
+          color: filled ? null : _C.surfaceHi,
+          borderRadius: BorderRadius.circular(20),
+          border: filled ? null : Border.all(color: _C.line),
+          boxShadow: filled
+              ? <BoxShadow>[
+            BoxShadow(
+              color: _C.gold.withOpacity(0.28),
+              blurRadius: 26,
+              offset: const Offset(0, 10),
+            ),
+          ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(icon, color: fg, size: 21),
+            const SizedBox(width: 10),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  softWrap: false,
+                  style: TextStyle(
+                    color: fg,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15.5,
+                    letterSpacing: _ls(context, 0.2),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Zoom très lent sur la photo (effet « cinéma »).
+class _KenBurns extends StatefulWidget {
+  final Widget child;
+  const _KenBurns({required this.child});
+
+  @override
+  State<_KenBurns> createState() => _KenBurnsState();
+}
+
+class _KenBurnsState extends State<_KenBurns>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 16),
+  )..forward();
+  late final Animation<double> _a =
+  CurvedAnimation(parent: _c, curve: Curves.easeOutCubic);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: AnimatedBuilder(
+        animation: _a,
+        child: widget.child,
+        builder: (BuildContext _, Widget? ch) =>
+            Transform.scale(scale: 1.12 - 0.12 * _a.value, child: ch),
+      ),
+    );
+  }
+}
+
+/// Image d'un lieu, avec repli élégant si le fichier manque.
+class _PlaceImage extends StatelessWidget {
+  final String path;
+  const _PlaceImage(this.path);
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      path,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => const DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[_C.surfaceHi, _C.surface],
+          ),
+        ),
+        child: Center(
+          child: Icon(Icons.landscape_rounded, color: _C.textDim, size: 40),
+        ),
+      ),
+    );
+  }
+}
+
+/// Titre de section : barre dorée, titre, pastille de compteur.
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final String count;
+  const _SectionHeader({required this.title, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 30, 0, 16),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 4,
+            height: 24,
+            decoration: BoxDecoration(
+              gradient: _C.goldGrad,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(title, style: _display(context, 24, ls: -0.5)),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: _C.surface,
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(color: _C.line),
+            ),
+            child: Text(count,
+                style: _label(context, size: 12, color: _C.textSoft, ls: 0.2)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Titre de bloc dans la fiche détaillée.
+class _DetailLabel extends StatelessWidget {
+  final String text;
+  const _DetailLabel({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        Container(
+          width: 4,
+          height: 20,
+          decoration: BoxDecoration(
+            gradient: _C.goldGrad,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: Text(text, style: _display(context, 21, ls: -0.4))),
+      ],
+    );
+  }
+}
+
+/// Arc du soleil : l'astre glisse de l'est à l'ouest, le trajet parcouru
+/// se colore en or.
+class _ArcPainter extends CustomPainter {
+  final double dayP;
+  const _ArcPainter(this.dayP);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double r = math.min(size.width / 2 - 14, size.height - 16);
+    final Offset c = Offset(size.width / 2, size.height - 6);
+    final Rect rect = Rect.fromCircle(center: c, radius: r);
+
+    final Paint track = Paint()
+      ..color = Colors.white.withOpacity(0.13)
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    canvas.drawArc(rect, math.pi, math.pi, false, track);
+    canvas.drawLine(
+      Offset(0, c.dy),
+      Offset(size.width, c.dy),
+      Paint()
+        ..color = Colors.white.withOpacity(0.10)
+        ..strokeWidth = 1,
+    );
+
+    if (dayP >= 0) {
+      final Paint done = Paint()
+        ..color = _C.gold
+        ..strokeWidth = 3.5
+        ..strokeCap = StrokeCap.round
+        ..style = PaintingStyle.stroke;
+      canvas.drawArc(rect, math.pi, math.pi * dayP, false, done);
+
+      final double a = math.pi + dayP * math.pi;
+      final Offset s = c + Offset(math.cos(a), math.sin(a)) * r;
+      canvas.drawCircle(s, 20, Paint()..color = _C.gold.withOpacity(0.14));
+      canvas.drawCircle(s, 12, Paint()..color = _C.gold.withOpacity(0.28));
+      canvas.drawCircle(s, 6.5, Paint()..color = _C.goldLight);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ArcPainter old) => old.dayP != dayP;
+}
+
+/// Anneau de progression du minuteur.
+class _RingPainter extends CustomPainter {
+  final double progress; // 0 → 1
+  const _RingPainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const double stroke = 12;
+    final Offset c = size.center(Offset.zero);
+    final double r = math.min(size.width, size.height) / 2 - stroke / 2;
+    final Rect rect = Rect.fromCircle(center: c, radius: r);
+
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()
+        ..color = Colors.white.withOpacity(0.07)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke,
+    );
+
+    final double p = progress.clamp(0.0, 1.0).toDouble();
+    if (p <= 0) return;
+    canvas.drawArc(
+      rect,
+      -math.pi / 2,
+      2 * math.pi * p,
+      false,
+      Paint()
+        ..shader = const SweepGradient(
+          startAngle: 0,
+          endAngle: 2 * math.pi,
+          colors: <Color>[_C.goldDeep, _C.gold, _C.goldLight, _C.goldDeep],
+          transform: GradientRotation(-math.pi / 2),
+        ).createShader(rect)
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = stroke,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _RingPainter old) => old.progress != progress;
+}
+
+Widget _timeCell(
+    BuildContext c, IconData icon, String label, String time) {
+  return Row(
+    children: <Widget>[
+      Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withOpacity(0.09),
+        ),
+        child: Icon(icon, color: _C.goldLight, size: 17),
+      ),
+      const SizedBox(width: 10),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(label, style: _label(c, size: 11.5, ls: 0.2)),
+          const SizedBox(height: 3),
+          Text(time, style: _num(20, weight: FontWeight.w700)),
+        ],
+      ),
+    ],
+  );
+}
+
+/// Bloc « Heure dorée » : compte à rebours, arc du soleil, lever et coucher.
+class _SolarPanel extends StatelessWidget {
+  final DateTime nowUtc;
+  final _Golden g;
+  final String goldenLabel;
+  final String nowLabel;
+  final String sunriseLabel;
+  final String sunsetLabel;
+  const _SolarPanel({
+    required this.nowUtc,
+    required this.g,
+    required this.goldenLabel,
+    required this.nowLabel,
+    required this.sunriseLabel,
+    required this.sunsetLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color base = _solarColor(g, nowUtc);
+    final Color end = Color.lerp(base, _C.bg, 0.62)!;
+    final String big = g.live ? nowLabel : _hms(g.until);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(22, 20, 22, 22),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[base, end],
+          ),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: _C.line),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: base.withOpacity(0.35),
+              blurRadius: 40,
+              offset: const Offset(0, 18),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _C.gold.withOpacity(0.16),
+                  ),
+                  child: const Icon(Icons.wb_twilight_rounded,
+                      color: _C.goldLight, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    goldenLabel,
+                    style: _label(context,
+                        size: 14, color: _C.text.withOpacity(0.82), ls: 0.1),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(big,
+                  softWrap: false,
+                  style: _num(52, weight: FontWeight.w700, ls: -1.5)),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 80,
+              width: double.infinity,
+              child: CustomPaint(painter: _ArcPainter(g.dayP)),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: _timeCell(context, Icons.arrow_upward_rounded,
+                      sunriseLabel, _hm(g.today.rise)),
+                ),
+                Expanded(
+                  child: _timeCell(context, Icons.arrow_downward_rounded,
+                      sunsetLabel, _hm(g.today.set)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Grande carte photo d'un lieu : catégorie, cœur, nom, flèche.
+class _PlaceCard extends StatelessWidget {
+  final int number;
+  final String name;
+  final String sub;
+  final String photo;
+  final bool stamped;
+  final bool fav;
+  final VoidCallback onFav;
+  final VoidCallback onTap;
+
+  const _PlaceCard({
+    required this.number,
+    required this.name,
+    required this.sub,
+    required this.photo,
+    required this.stamped,
+    required this.fav,
+    required this.onFav,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _Press(
+      onTap: onTap,
+      scale: 0.975,
+      child: Container(
+        height: 232,
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: _C.line),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: Colors.black.withOpacity(0.45),
+              blurRadius: 32,
+              offset: const Offset(0, 16),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(29),
+          child: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              _PlaceImage(photo),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      Colors.black.withOpacity(0.30),
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.35),
+                      Colors.black.withOpacity(0.86),
+                    ],
+                    stops: const <double>[0, 0.30, 0.58, 1],
+                  ),
+                ),
+              ),
+              PositionedDirectional(
+                top: 14,
+                start: 14,
+                end: 14,
+                child: Row(
+                  children: <Widget>[
+                    Flexible(
+                      child: _Glass(
+                        radius: 99,
+                        blur: 14,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 7),
+                        child: Text(
+                          sub,
+                          style: _label(context,
+                              size: 12, color: _C.text, ls: 0.1),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    if (stamped) ...<Widget>[
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: _C.goldGrad,
+                        ),
+                        child: const Icon(Icons.check_rounded,
+                            size: 19, color: _C.onGold),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    _CircleBtn(
+                      icon: fav
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      active: fav,
+                      size: 38,
+                      onTap: onFav,
+                    ),
+                  ],
+                ),
+              ),
+              PositionedDirectional(
+                bottom: 18,
+                start: 20,
+                end: 18,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: <Widget>[
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Text(
+                            number.toString().padLeft(2, '0'),
+                            style: _num(13,
+                                color: _C.gold,
+                                weight: FontWeight.w700,
+                                ls: 1.5),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            name,
+                            style: _display(context, 26, height: 1.08, ls: -0.8),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.16),
+                        border: Border.all(
+                            color: Colors.white.withOpacity(0.22), width: 0.8),
+                      ),
+                      child: Icon(
+                        Directionality.of(context) == TextDirection.rtl
+                            ? Icons.north_west_rounded
+                            : Icons.north_east_rounded,
+                        color: _C.text,
+                        size: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Barre de filtres épinglée, en verre dépoli.
+class _FilterDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  final double topPad;
+  _FilterDelegate({required this.child, required this.topPad});
+
+  @override
+  double get minExtent => 68 + topPad;
+
+  @override
+  double get maxExtent => 68 + topPad;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          height: 68 + topPad,
+          padding: EdgeInsets.only(top: topPad),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: _C.bg.withOpacity(0.86),
+            border: const Border(
+              bottom: BorderSide(color: Color(0x0FFFFFFF), width: 0.8),
+            ),
+          ),
+          child: SizedBox(height: 40, child: child),
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _FilterDelegate oldDelegate) => true;
+}
+
+/// Réponse du quiz : pastille-lettre, texte, état.
+class _OptionTile extends StatelessWidget {
+  final String letter;
+  final String label;
+  final _OptState state;
+  final VoidCallback onTap;
+  const _OptionTile({
+    required this.letter,
+    required this.label,
+    required this.state,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool right = state == _OptState.right;
+    final bool wrong = state == _OptState.wrong;
+    final Color accent = right ? _C.good : (wrong ? _C.bad : _C.gold);
+    final Color fill = right
+        ? _C.good.withOpacity(0.12)
+        : wrong
+        ? _C.bad.withOpacity(0.12)
+        : _C.surface;
+    final Color stroke = right
+        ? _C.good.withOpacity(0.75)
+        : wrong
+        ? _C.bad.withOpacity(0.75)
+        : _C.line;
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 250),
+      opacity: state == _OptState.faded ? 0.4 : 1,
+      child: _Press(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          constraints: const BoxConstraints(minHeight: 66),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: stroke, width: right || wrong ? 1.2 : 0.8),
+          ),
+          child: Row(
+            children: <Widget>[
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: right || wrong ? accent : _C.surfaceHi,
+                ),
+                child: right || wrong
+                    ? Icon(
+                  right ? Icons.check_rounded : Icons.close_rounded,
+                  color: _C.onGold,
+                  size: 20,
+                )
+                    : Text(letter,
+                    style: _label(context,
+                        size: 14, color: _C.gold, weight: FontWeight.w700)),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  label,
+                  style: _display(context, 17.5,
+                      weight: FontWeight.w600, height: 1.2, ls: -0.2),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Vignette d'un lieu lié, dans la fiche détaillée.
+class _RelatedTile extends StatelessWidget {
+  final Map<String, dynamic> item;
+  final VoidCallback onTap;
+  const _RelatedTile({required this.item, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return _Press(
+      onTap: onTap,
+      child: Container(
+        width: 184,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(26),
+          border: Border.all(color: _C.line),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(25),
+          child: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              _PlaceImage(item['photo_url'] as String? ?? ''),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.85),
+                    ],
+                    stops: const <double>[0.35, 1],
+                  ),
+                ),
+              ),
+              PositionedDirectional(
+                start: 14,
+                end: 14,
+                bottom: 14,
+                child: Text(
+                  '${item['name']}',
+                  style: _display(context, 16.5, height: 1.15, ls: -0.3),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Un point fort : pastille numérotée dorée, titre, texte.
+class _HighlightCard extends StatelessWidget {
+  final int number;
+  final String title;
+  final String desc;
+  const _HighlightCard(
+      {required this.number, required this.title, required this.desc});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _C.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: _C.line),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _C.gold.withOpacity(0.13),
+              border: Border.all(color: _C.gold.withOpacity(0.35), width: 0.8),
+            ),
+            child: Text('$number',
+                style: _num(15, color: _C.gold, weight: FontWeight.w700)),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(title, style: _display(context, 17, height: 1.2, ls: -0.3)),
+                const SizedBox(height: 6),
+                Text(desc, style: _body(14.5, color: _C.textSoft, height: 1.6)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Case d'information de la fiche (durée, meilleur moment).
+class _MetaTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _MetaTile(
+      {required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _C.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: _C.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: _C.gold.withOpacity(0.13),
+            ),
+            child: Icon(icon, color: _C.gold, size: 19),
+          ),
+          const SizedBox(height: 14),
+          Text(label, style: _label(context, size: 12, ls: 0.1)),
+          const SizedBox(height: 4),
+          Text(value,
+              style: _display(context, 16, height: 1.25, ls: -0.2)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Pied de page discret.
+class _Footer extends StatelessWidget {
+  final String title;
+  const _Footer({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 30, 20, 60),
+      child: Column(
+        children: <Widget>[
+          Container(
+            width: 44,
+            height: 4,
+            decoration: BoxDecoration(
+              gradient: _C.goldGrad,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 22),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              title,
+              softWrap: false,
+              style: _display(context, 64,
+                  color: Colors.white.withOpacity(0.07),
+                  weight: FontWeight.w800,
+                  ls: -2.5),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text('31.20°N · 29.92°E',
+              style: _num(12, color: _C.textDim, ls: 1.4)),
+        ],
+      ),
+    );
+  }
+}
+
+/// En-tête : photo plein cadre, sélecteur de langue, titre, statut en direct.
+class _Masthead extends StatelessWidget {
+  final double height;
+  final double topPad;
+  final String title;
+  final String tagline;
+  final String countText;
+  final String Function(DateTime) liveLine;
+  final ValueListenable<DateTime> tick;
+  final Widget langs;
+  const _Masthead({
+    required this.height,
+    required this.topPad,
+    required this.title,
+    required this.tagline,
+    required this.countText,
+    required this.liveLine,
+    required this.tick,
+    required this.langs,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: height,
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          _KenBurns(child: const _PlaceImage('assets/alexendrie/qai.jpg')),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: <Color>[
+                  Colors.black.withOpacity(0.55),
+                  Colors.black.withOpacity(0.0),
+                  _C.bg.withOpacity(0.75),
+                  _C.bg,
+                ],
+                stops: const <double>[0, 0.30, 0.78, 1],
+              ),
+            ),
+          ),
+          PositionedDirectional(
+            top: topPad + 12,
+            start: 20,
+            end: 20,
+            child: Row(
+              children: <Widget>[
+                Flexible(
+                  child: _Glass(
+                    radius: 99,
+                    blur: 14,
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        const Icon(Icons.place_rounded,
+                            color: _C.gold, size: 15),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text('31.20°N · 29.92°E',
+                              style: _num(12,
+                                  color: _C.text, weight: FontWeight.w600)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                langs,
+              ],
+            ),
+          ),
+          PositionedDirectional(
+            start: 20,
+            end: 20,
+            bottom: 18,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Container(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _C.gold.withOpacity(0.16),
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(
+                        color: _C.gold.withOpacity(0.45), width: 0.8),
+                  ),
+                  child: Text(countText,
+                      style: _label(context,
+                          size: 12.5, color: _C.goldLight, ls: 0.3)),
+                ),
+                const SizedBox(height: 14),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    title,
+                    softWrap: false,
+                    style: _display(context, 68,
+                        weight: FontWeight.w800, height: 1.0, ls: -2.6),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(tagline,
+                    style: _body(17, color: _C.text.withOpacity(0.78), height: 1.35)),
+                const SizedBox(height: 18),
+                ValueListenableBuilder<DateTime>(
+                  valueListenable: tick,
+                  builder: (BuildContext c, DateTime now, Widget? _) => _Glass(
+                    radius: 99,
+                    blur: 14,
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _C.gold,
+                            boxShadow: <BoxShadow>[
+                              BoxShadow(
+                                color: _C.gold.withOpacity(0.7),
+                                blurRadius: 8,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: Text(liveLine(now),
+                              style: _label(c,
+                                  size: 13, color: _C.text, ls: 0.1)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+//  PAGE PRINCIPALE
+// ═════════════════════════════════════════════════════════════
 class AlexandriePage extends StatefulWidget {
   const AlexandriePage({super.key});
 
@@ -60,15 +1405,20 @@ class AlexandriePage extends StatefulWidget {
   State<AlexandriePage> createState() => _AlexandriePageState();
 }
 
-class _AlexandriePageState extends State<AlexandriePage>
-    with SingleTickerProviderStateMixin {
-  final ScrollController _mainScrollController = ScrollController();
-  late final AnimationController _shimmer;
+class _AlexandriePageState extends State<AlexandriePage> {
+  final ScrollController _scroll = ScrollController();
+  final ValueNotifier<DateTime> _tick =
+  ValueNotifier<DateTime>(DateTime.now().toUtc());
+  Timer? _clock;
+
   String _lang = 'fr';
   String _filter = 'all'; // 'all' | 'fav' | clé de catégorie
-  Set<String> _favs = {};
-  bool _showTop = false;
+  Set<String> _favs = <String>{};
+  Set<String> _stamps = <String>{};
+  int _visitMinutes = 0;
+  bool _goldenNotified = false;
 
+  // ───────────── Traductions et données (inchangées) ─────────────
   // --- TRADUCTIONS DE L'INTERFACE ---
   static const Map<String, Map<String, String>> _uiTranslations = {
     'fr': {
@@ -80,10 +1430,6 @@ class _AlexandriePageState extends State<AlexandriePage>
       'noFav': 'Aucun favori pour le moment.\nTouche le ♡ pour en ajouter.',
       'discover': 'Découvrir',
       'mapsBtn': 'Ouvrir dans Google Maps',
-      'catMonuments': 'Monuments historiques',
-      'catActivities': 'Activités incontournables',
-      'catHistory': 'Lieux historiques',
-      'catCulture': 'Culture et Savoir',
       'about': 'À propos',
       'overview': 'En bref',
       'duration': 'Durée conseillée',
@@ -93,6 +1439,53 @@ class _AlexandriePageState extends State<AlexandriePage>
       'didYouKnow': 'Le saviez-vous ?',
       'tip': 'Conseil du voyageur',
       'seeAlso': 'À voir aussi',
+      'catMonuments': 'Monuments historiques',
+      'catMarkets': 'Marchés traditionnels',
+      'catHistory': 'Lieux historiques',
+      'catArch': 'Architecture',
+      'catRelaxation': 'Lieux de détente',
+      'catActivities': 'Activités incontournables',
+      'phaseDawn': 'Aube',
+      'phaseDay': 'Journée',
+      'phaseDusk': 'Heure dorée',
+      'phaseNight': 'Nuit',
+      'cairoTime': 'Il est {t} à Alexandrie',
+      'passport': 'Passeport',
+      'passportCount': 'tampons',
+      'stampAdd': 'J’y suis · tamponner',
+      'stampDone': 'Tamponné · annuler',
+      'dailyPick': 'Lieu du jour',
+      'resetPassport': 'Remettre à zéro',
+      'resetAsk': 'Effacer tous les tampons ?',
+      'cancel': 'Annuler',
+      'resetYes': 'Effacer',
+      'goldenNow': 'En cours',
+      'goldenIn': 'Heure dorée dans',
+      'sunrise': 'Lever',
+      'sunset': 'Coucher',
+      'quizTitle': 'Devine le lieu',
+      'quizIntro': 'Un fait, trois lieux. Trouve le bon.',
+      'quizQ': 'De quel lieu parle ce fait ?',
+      'score': 'Score',
+      'streak': 'Série',
+      'record': 'Record',
+      'next': 'Suivant',
+      'quizReset': 'Remettre à zéro',
+      'quizResetAsk': 'Remettre le score, la série et le record à zéro ?',
+      'rightAns': 'Bravo, c’est ça !',
+      'wrongAns': 'Raté : c’était {n}',
+      'visitTitle': 'Minuteur de visite',
+      'start': 'Commencer',
+      'stop': 'Arrêter',
+      'visitDone': 'Visite terminée, bien joué !',
+      'totalTime': 'Temps à Alexandrie',
+      'hUnit': 'h',
+      'mUnit': 'min',
+      'btnStamp': 'Tamponner',
+      'btnStampDone': 'Tamponné',
+      'btnTimer': 'Minuteur',
+      'btnMaps': 'Itinéraire',
+      'catCulture': 'Culture et Savoir',
     },
     'en': {
       'pageTitle': 'Alexandria',
@@ -103,10 +1496,6 @@ class _AlexandriePageState extends State<AlexandriePage>
       'noFav': 'No favorites yet.\nTap the ♡ to add some.',
       'discover': 'Discover',
       'mapsBtn': 'Open in Google Maps',
-      'catMonuments': 'Historical Monuments',
-      'catActivities': 'Must-do Activities',
-      'catHistory': 'Historical Places',
-      'catCulture': 'Culture and Knowledge',
       'about': 'About',
       'overview': 'At a glance',
       'duration': 'Suggested time',
@@ -116,6 +1505,53 @@ class _AlexandriePageState extends State<AlexandriePage>
       'didYouKnow': 'Did you know?',
       'tip': "Traveller's tip",
       'seeAlso': 'Also worth a visit',
+      'catMonuments': 'Historical Monuments',
+      'catMarkets': 'Traditional Markets',
+      'catHistory': 'Historical Places',
+      'catArch': 'Architecture',
+      'catRelaxation': 'Relaxation Spots',
+      'catActivities': 'Must-do Activities',
+      'phaseDawn': 'Dawn',
+      'phaseDay': 'Daylight',
+      'phaseDusk': 'Golden hour',
+      'phaseNight': 'Night',
+      'cairoTime': 'It is {t} in Alexandria',
+      'passport': 'Passport',
+      'passportCount': 'stamps',
+      'stampAdd': 'I was here · stamp it',
+      'stampDone': 'Stamped · undo',
+      'dailyPick': 'Pick of the day',
+      'resetPassport': 'Reset',
+      'resetAsk': 'Erase all stamps?',
+      'cancel': 'Cancel',
+      'resetYes': 'Erase',
+      'goldenNow': 'Happening now',
+      'goldenIn': 'Golden hour in',
+      'sunrise': 'Sunrise',
+      'sunset': 'Sunset',
+      'quizTitle': 'Guess the place',
+      'quizIntro': 'One fact, three places. Find the right one.',
+      'quizQ': 'Which place does this fact describe?',
+      'score': 'Score',
+      'streak': 'Streak',
+      'record': 'Record',
+      'quizReset': 'Reset to zero',
+      'quizResetAsk': 'Reset score, streak and record to zero?',
+      'next': 'Next',
+      'rightAns': 'Well done, that’s it!',
+      'wrongAns': 'Missed: it was {n}',
+      'visitTitle': 'Visit timer',
+      'start': 'Start',
+      'stop': 'Stop',
+      'visitDone': 'Visit complete, well done!',
+      'totalTime': 'Time in Alexandria',
+      'hUnit': 'h',
+      'mUnit': 'min',
+      'btnStamp': 'Stamp',
+      'btnStampDone': 'Stamped',
+      'btnTimer': 'Timer',
+      'btnMaps': 'Directions',
+      'catCulture': 'Culture and Knowledge',
     },
     'ar': {
       'pageTitle': 'الإسكندرية',
@@ -125,11 +1561,7 @@ class _AlexandriePageState extends State<AlexandriePage>
       'favs': 'المفضلة',
       'noFav': 'لا توجد أماكن مفضلة بعد.\nاضغط على ♡ للإضافة.',
       'discover': 'اكتشف',
-      'mapsBtn': 'افتح في خرائط Google',
-      'catMonuments': 'معالم تاريخية',
-      'catActivities': 'أنشطة لا بد منها',
-      'catHistory': 'أماكن تاريخية',
-      'catCulture': 'الثقافة والمعرفة',
+      'mapsBtn': 'الفتح في خرائط Google',
       'about': 'نبذة',
       'overview': 'لمحة سريعة',
       'duration': 'المدة المقترحة',
@@ -139,11 +1571,58 @@ class _AlexandriePageState extends State<AlexandriePage>
       'didYouKnow': 'هل تعلم؟',
       'tip': 'نصيحة للمسافر',
       'seeAlso': 'اكتشف أيضًا',
+      'catMonuments': 'معالم تاريخية',
+      'catMarkets': 'الأسواق التقليدية',
+      'catHistory': 'أماكن تاريخية',
+      'catArch': 'العمارة',
+      'catRelaxation': 'أماكن الاسترخاء',
+      'catActivities': 'أنشطة لا بد منها',
+      'phaseDawn': 'الفجر',
+      'phaseDay': 'نهار',
+      'phaseDusk': 'الساعة الذهبية',
+      'phaseNight': 'الليل',
+      'cairoTime': 'الساعة {t} في الإسكندرية',
+      'passport': 'جواز السفر',
+      'passportCount': 'أختام',
+      'stampAdd': 'كنت هنا · ختم',
+      'stampDone': 'تم الختم · تراجع',
+      'dailyPick': 'مكان اليوم',
+      'resetPassport': 'إعادة الضبط',
+      'resetAsk': 'مسح كل الأختام؟',
+      'cancel': 'إلغاء',
+      'resetYes': 'مسح',
+      'goldenNow': 'جارية الآن',
+      'goldenIn': 'الساعة الذهبية بعد',
+      'sunrise': 'الشروق',
+      'sunset': 'الغروب',
+      'quizTitle': 'خمّن المكان',
+      'quizIntro': 'حقيقة واحدة، ثلاثة أماكن. اعثر على الصحيح.',
+      'quizQ': 'عن أي مكان تتحدث هذه الحقيقة؟',
+      'score': 'النتيجة',
+      'streak': 'سلسلة',
+      'record': 'الأفضل',
+      'quizReset': 'إعادة التعيين إلى الصفر',
+      'quizResetAsk': 'إعادة النتيجة والسلسلة والرقم القياسي إلى الصفر؟',
+      'next': 'التالي',
+      'rightAns': 'أحسنت، هذا صحيح!',
+      'wrongAns': 'خطأ: كان {n}',
+      'visitTitle': 'مؤقت الزيارة',
+      'start': 'ابدأ',
+      'stop': 'توقف',
+      'visitDone': 'انتهت الزيارة، أحسنت!',
+      'totalTime': 'الوقت في الإسكندرية',
+      'hUnit': 'س',
+      'mUnit': 'د',
+      'btnStamp': 'ختم',
+      'btnStampDone': 'تم الختم',
+      'btnTimer': 'مؤقت',
+      'btnMaps': 'الاتجاهات',
+      'catCulture': 'الثقافة والمعرفة',
     },
   };
 
   // --- DONNÉES TRADUITES PAR LANGUE ---
-  static const Map<String, List<Map<String, dynamic>>> _localizedData = {
+  static const Map<String, List<Map<String, dynamic>>> _localizedAlexandrieData = {
     'fr': [
       {
         "id": "citadelle_qaitbay",
@@ -314,40 +1793,54 @@ class _AlexandriePageState extends State<AlexandriePage>
     ],
   };
 
+  // ─────────────────────────────────────────────────────────────
+
   @override
   void initState() {
     super.initState();
-    _shimmer = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 5),
-    )..repeat();
-    _mainScrollController.addListener(() {
-      final show = _mainScrollController.offset > 600;
-      if (show != _showTop) setState(() => _showTop = show);
+    _goldenNotified = _goldenNow(DateTime.now().toUtc()).live;
+    _clock = Timer.periodic(const Duration(seconds: 1), (Timer _) {
+      final DateTime nowUtc = DateTime.now().toUtc();
+      final bool live = _goldenNow(nowUtc).live;
+      if (live && !_goldenNotified) {
+        _goldenNotified = true;
+        HapticFeedback.heavyImpact();
+      } else if (!live) {
+        _goldenNotified = false;
+      }
+      _tick.value = nowUtc;
     });
     _chargerPrefs();
   }
 
+  @override
+  void dispose() {
+    _clock?.cancel();
+    _tick.dispose();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  // ───────────── Préférences ─────────────
+
   Future<void> _chargerPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? langSauvegardee = prefs.getString('selected_language');
-    final favs = prefs.getStringList('favorite_places_alexandrie') ?? <String>[];
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? lang = prefs.getString('selected_language');
     if (!mounted) return;
     setState(() {
-      if (langSauvegardee != null &&
-          _uiTranslations.containsKey(langSauvegardee)) {
-        _lang = langSauvegardee;
-      }
-      _favs = favs.toSet();
+      if (lang != null && _uiTranslations.containsKey(lang)) _lang = lang;
+      _favs = (prefs.getStringList('favorite_places') ?? <String>[]).toSet();
+      _stamps = (prefs.getStringList('stamped_places') ?? <String>[]).toSet();
+      _visitMinutes = prefs.getInt('visit_minutes') ?? 0;
     });
   }
 
-  Future<void> _changerLangue(String nouvelleLangue) async {
-    if (_lang == nouvelleLangue) return;
+  Future<void> _changerLangue(String code) async {
+    if (code == _lang) return;
     HapticFeedback.selectionClick();
-    setState(() => _lang = nouvelleLangue);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('selected_language', nouvelleLangue);
+    setState(() => _lang = code);
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selected_language', code);
   }
 
   Future<void> _toggleFav(String id) async {
@@ -355,237 +1848,945 @@ class _AlexandriePageState extends State<AlexandriePage>
     setState(() {
       if (!_favs.remove(id)) _favs.add(id);
     });
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('favorite_places_alexandrie', _favs.toList());
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('favorite_places', _favs.toList());
+  }
+
+  Future<void> _toggleStamp(String id) async {
+    setState(() {
+      if (!_stamps.remove(id)) _stamps.add(id);
+    });
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('stamped_places', _stamps.toList());
+  }
+
+  Future<void> _addVisit(int minutes) async {
+    if (minutes <= 0) return;
+    setState(() => _visitMinutes += minutes);
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('visit_minutes', _visitMinutes);
+  }
+
+
+  Future<void> _confirmResetStamps() async {
+    if (_stamps.isEmpty) return;
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => Directionality(
+        textDirection: _lang == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+        child: AlertDialog(
+          backgroundColor: _C.surface,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: _C.line),
+            borderRadius: BorderRadius.circular(28),
+          ),
+          title: Text(_t('resetAsk'),
+              style: _display(ctx, 21, height: 1.2, ls: -0.4)),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(_t('cancel'),
+                  style: const TextStyle(
+                      color: _C.textSoft, fontWeight: FontWeight.w600)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(_t('resetYes'),
+                  style: const TextStyle(
+                      color: _C.gold, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (ok != true) return;
+    HapticFeedback.mediumImpact();
+    setState(() => _stamps.clear());
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove('stamped_places');
   }
 
   Future<void> _ouvrirMaps(String query) async {
-    final encodedQuery = Uri.encodeComponent(query);
-    final url = Uri.parse(
-        'https://www.google.com/maps/search/?api=1&query=$encodedQuery');
-
+    final Uri url = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(query)}');
     try {
-      bool launched = await launchUrl(
-        url,
-        mode: LaunchMode.externalApplication,
-      );
-      if (!launched) {
-        debugPrint('Impossible d\'ouvrir Google Maps');
-      }
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     } catch (e) {
       debugPrint('Erreur ouverture Maps : $e');
     }
   }
 
-  // Palette monochrome : tout en or champagne
-  Color _getCategoryColor(String categoryKey) => _C.gold;
+  // ───────────── Accès aux données ─────────────
 
-  IconData _getCategoryIcon(String categoryKey) {
-    switch (categoryKey) {
-      case "catMonuments":
-        return Icons.account_balance_outlined;
-      case "catActivities":
-        return Icons.attractions_outlined;
-      case "catHistory":
-        return Icons.history_edu_outlined;
-      case "catCulture":
-        return Icons.local_library_outlined;
-      default:
-        return Icons.place_outlined;
+  String _t(String key) =>
+      _uiTranslations[_lang]?[key] ?? _uiTranslations['fr']![key] ?? key;
+
+  List<Map<String, dynamic>> get _data =>
+      _localizedAlexandrieData[_lang] ?? _localizedAlexandrieData['fr']!;
+
+  Map<String, dynamic>? _extraFor(String id) {
+    final Map<String, dynamic>? all = _placeExtras[id];
+    if (all == null) return null;
+    final Object? l = all[_lang] ?? all['fr'];
+    return l is Map<String, dynamic> ? l : null;
+  }
+
+  Map<String, String> _facts() {
+    final Map<String, String> m = <String, String>{};
+    for (final Map<String, dynamic> it in _data) {
+      final Object? f = _extraFor(it['id'] as String)?['fact'];
+      if (f is String) m[it['id'] as String] = f;
     }
+    return m;
   }
 
-  String _getTranslatedText(String key) {
-    return _uiTranslations[_lang]?[key] ?? _uiTranslations['fr']![key] ?? key;
+  String _durStr(Duration d) {
+    final int h = d.inHours;
+    final int m = d.inMinutes % 60;
+    if (h == 0) return '$m ${_t('mUnit')}';
+    return '$h ${_t('hUnit')}${m > 0 ? ' ${_two(m)}' : ''}';
   }
 
-  @override
-  void dispose() {
-    _shimmer.dispose();
-    _mainScrollController.dispose();
-    super.dispose();
+  String _liveLine(DateTime utc) {
+    final _Golden g = _goldenNow(utc);
+    final String phase = g.live
+        ? _t('phaseDusk')
+        : (g.dayP >= 0 ? _t('phaseDay') : _t('phaseNight'));
+    return '$phase · ${_t('cairoTime').replaceAll('{t}', _hm(utc))}';
   }
 
-  // ───────────── Sélecteur de langue ─────────────
-  Widget _buildLangSwitcher() {
-    const codes = ['fr', 'en', 'ar'];
-    const labels = ['FR', 'EN', 'AR'];
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(30),
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.28),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: _C.gold.withOpacity(0.35)),
+  // ───────────── Navigation ─────────────
+
+  void _openDetail(Map<String, dynamic> item) {
+    HapticFeedback.selectionClick();
+    final String id = item['id'] as String;
+    final List<String> relIds =
+    ((_placeExtras[id]?['related'] as List?) ?? const <dynamic>[]).cast<String>();
+    final List<Map<String, dynamic>> related = <Map<String, dynamic>>[
+      for (final String r in relIds) ..._data.where((Map<String, dynamic> e) => e['id'] == r),
+    ];
+    final Map<String, String> labels = <String, String>{
+      for (final String k in const <String>[
+        'about', 'overview', 'duration', 'bestTime', 'category', 'highlights',
+        'didYouKnow', 'tip', 'seeAlso', 'btnStamp', 'btnStampDone', 'btnTimer',
+        'btnMaps', 'visitTitle', 'start', 'stop', 'visitDone', 'hUnit', 'mUnit',
+        'close', 'totalTime', 'goldenNow',
+      ])
+        k: _t(k),
+    };
+    final bool isRtl = _lang == 'ar';
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 520),
+        reverseTransitionDuration: const Duration(milliseconds: 420),
+        pageBuilder: (_, __, ___) => Directionality(
+          textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+          child: _PlaceDetailPage(
+            item: item,
+            extra: _extraFor(id),
+            labels: labels,
+            related: related,
+            isFav: _favs.contains(id),
+            isStamped: _stamps.contains(id),
+            onFav: () => _toggleFav(id),
+            onStamp: () => _toggleStamp(id),
+            onVisitDone: _addVisit,
+            onMaps: () => _ouvrirMaps(
+                item['mapsQuery'] as String? ?? '${item['name']} Alexandrie'),
+            onOpenRelated: _openDetail,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(3, (i) {
-              final active = _lang == codes[i];
-              return MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _changerLangue(codes[i]),
-                  child: Padding(
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 250),
-                          style: TextStyle(
-                            color:
-                            active ? _C.gold : _C.cream.withOpacity(0.6),
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.6,
-                          ),
-                          child: Text(labels[i]),
+        ),
+        transitionsBuilder: (_, a, __, child) {
+          final Animation<double> curved =
+          CurvedAnimation(parent: a, curve: Curves.easeOutCubic);
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.035),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _openQuiz() {
+    HapticFeedback.selectionClick();
+    final bool isRtl = _lang == 'ar';
+    final Map<String, String> labels = <String, String>{
+      for (final String k in const <String>[
+        'quizTitle', 'quizIntro', 'quizQ', 'score', 'streak', 'record', 'next',
+        'rightAns', 'wrongAns', 'quizReset', 'quizResetAsk', 'cancel', 'resetYes',
+      ])
+        k: _t(k),
+    };
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Directionality(
+          textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+          child: _QuizPage(places: _data, facts: _facts(), labels: labels),
+        ),
+      ),
+    );
+  }
+
+
+  // ───────────── Construction de la page ─────────────
+
+  Widget _buildLangs() {
+    const List<String> codes = <String>['fr', 'en', 'ar'];
+    const List<String> labels = <String>['FR', 'EN', 'AR'];
+    return _Glass(
+      radius: 99,
+      blur: 14,
+      padding: const EdgeInsets.all(3),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          for (int i = 0; i < codes.length; i++)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _changerLangue(codes[i]),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                padding:
+                const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+                decoration: BoxDecoration(
+                  gradient: _lang == codes[i] ? _C.goldGrad : null,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  labels[i],
+                  style: _num(12,
+                      color: _lang == codes[i] ? _C.onGold : _C.text,
+                      weight: FontWeight.w700,
+                      ls: 0.6),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChips(List<String> catKeys) {
+    final List<MapEntry<String, String>> items = <MapEntry<String, String>>[
+      MapEntry<String, String>('all', _t('all')),
+      MapEntry<String, String>('fav', _t('favs')),
+      for (final String k in catKeys) MapEntry<String, String>(k, _t(k)),
+    ];
+    return ListView.separated(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      itemCount: items.length,
+      separatorBuilder: (BuildContext _, int __) => const SizedBox(width: 8),
+      itemBuilder: (BuildContext c, int i) {
+        final String key = items[i].key;
+        final bool on = _filter == key;
+        final Color fg = on ? _C.onGold : _C.textSoft;
+        return _Press(
+          scale: 0.94,
+          onTap: () {
+            HapticFeedback.selectionClick();
+            setState(() => _filter = key);
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              gradient: on ? _C.goldGrad : null,
+              color: on ? null : _C.surface,
+              borderRadius: BorderRadius.circular(99),
+              border: on ? null : Border.all(color: _C.line),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                if (key == 'fav') ...<Widget>[
+                  Icon(Icons.favorite_rounded, size: 15, color: fg),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  items[i].value,
+                  style: _label(c,
+                      size: 13.5,
+                      color: on ? _C.onGold : _C.text.withOpacity(0.85),
+                      ls: 0.1,
+                      weight: on ? FontWeight.w700 : FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSolar(DateTime nowUtc) {
+    final _Golden g = _goldenNow(nowUtc);
+    return _SolarPanel(
+      nowUtc: nowUtc,
+      g: g,
+      goldenLabel: g.live ? _t('phaseDusk') : _t('goldenIn'),
+      nowLabel: _t('goldenNow'),
+      sunriseLabel: _t('sunrise'),
+      sunsetLabel: _t('sunset'),
+    );
+  }
+
+  Widget _buildPlayRow(Map<String, dynamic> daily) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+      child: SizedBox(
+        height: 140,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            // Quiz
+            Expanded(
+              child: _Press(
+                onTap: _openQuiz,
+                child: Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: <Color>[_C.surfaceHi, _C.surface],
+                    ),
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: _C.line),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          gradient: _C.goldGrad,
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        const SizedBox(height: 4),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeOutCubic,
-                          height: 1,
-                          width: active ? 16 : 0,
-                          color: _C.gold,
+                        child: const Icon(Icons.psychology_alt_rounded,
+                            color: _C.onGold, size: 25),
+                      ),
+                      const Spacer(),
+                      Text(
+                        _t('quizTitle'),
+                        style: _display(context, 17, height: 1.15, ls: -0.3),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            // Lieu du jour
+            Expanded(
+              child: _Press(
+                onTap: () => _openDetail(daily),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: _C.line),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(27),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: <Widget>[
+                        _PlaceImage(daily['photo_url'] as String? ?? ''),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: <Color>[
+                                Colors.black.withOpacity(0.35),
+                                Colors.black.withOpacity(0.05),
+                                Colors.black.withOpacity(0.85),
+                              ],
+                              stops: const <double>[0, 0.4, 1],
+                            ),
+                          ),
+                        ),
+                        PositionedDirectional(
+                          top: 14,
+                          start: 14,
+                          end: 14,
+                          child: Row(
+                            children: <Widget>[
+                              const Icon(Icons.wb_sunny_rounded,
+                                  color: _C.gold, size: 15),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  _t('dailyPick'),
+                                  style: _label(context,
+                                      size: 12,
+                                      color: _C.goldLight,
+                                      ls: 0.2),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        PositionedDirectional(
+                          start: 14,
+                          end: 14,
+                          bottom: 14,
+                          child: Text(
+                            '${daily['name']}',
+                            style: _display(context, 16.5, height: 1.15, ls: -0.3),
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
-              );
-            }),
-          ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // ───────────── Onglets de filtre (texte + filet doré) ─────────────
-  Widget _buildTab({
-    required String id,
-    required String label,
-    IconData? icon,
-  }) {
-    final selected = _filter == id;
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          if (_filter == id) return;
-          HapticFeedback.selectionClick();
-          setState(() => _filter = id);
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (icon != null) ...[
-                    Icon(icon,
-                        size: 13,
-                        color: selected
-                            ? _C.gold
-                            : _C.cream.withOpacity(0.5)),
-                    const SizedBox(width: 7),
-                  ],
-                  AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 250),
-                    style: TextStyle(
-                      color: selected ? _C.gold : _C.cream.withOpacity(0.55),
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: _ls(context, 2.2),
-                    ),
-                    child: Text(label.toUpperCase()),
+  Widget _buildPassport(List<bool> flags) {
+    final int got = flags.where((bool f) => f).length;
+    final double frac = flags.isEmpty ? 0 : got / flags.length;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: _C.surface,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: _C.line),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(13),
+                    color: _C.gold.withOpacity(0.13),
                   ),
-                ],
+                  child: const Icon(Icons.verified_rounded,
+                      color: _C.gold, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(_t('passport'),
+                      style: _display(context, 18, ls: -0.3)),
+                ),
+                Text('$got / ${flags.length}',
+                    style: _num(15, color: _C.gold, weight: FontWeight.w700)),
+                const SizedBox(width: 6),
+                Text(_t('passportCount'),
+                    style: _label(context, size: 12.5, ls: 0.1)),
+              ],
+            ),
+            const SizedBox(height: 18),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: Container(
+                height: 7,
+                color: Colors.white.withOpacity(0.07),
+                alignment: AlignmentDirectional.centerStart,
+                child: AnimatedFractionallySizedBox(
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeOutCubic,
+                  alignment: AlignmentDirectional.centerStart,
+                  widthFactor: frac.clamp(0.0, 1.0).toDouble(),
+                  child: Container(
+                    decoration: const BoxDecoration(gradient: _C.goldGrad),
+                  ),
+                ),
               ),
-              const SizedBox(height: 8),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 350),
-                curve: Curves.easeOutCubic,
-                height: 1.5,
-                width: selected ? 30 : 0,
-                color: _C.gold,
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 18),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                for (int i = 0; i < flags.length; i++)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutCubic,
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: flags[i] ? _C.goldGrad : null,
+                      border: flags[i]
+                          ? null
+                          : Border.all(
+                          color: Colors.white.withOpacity(0.16), width: 1),
+                    ),
+                    child: flags[i]
+                        ? const Icon(Icons.check_rounded,
+                        size: 16, color: _C.onGold)
+                        : null,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Container(height: 0.8, color: _C.line),
+            const SizedBox(height: 12),
+            Row(
+              children: <Widget>[
+                const Icon(Icons.timer_outlined,
+                    size: 17, color: _C.textSoft),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${_t('totalTime')} · ${_durStr(Duration(minutes: _visitMinutes))}',
+                    style: _label(context,
+                        size: 13, color: _C.text.withOpacity(0.85), ls: 0.1),
+                  ),
+                ),
+                if (got > 0)
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: _confirmResetStamps,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Text(
+                        _t('resetPassport'),
+                        style: _label(context,
+                            size: 13, color: _C.gold, ls: 0.1),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 
-  void _openDetail(Map<String, dynamic> item, Color color, IconData icon) {
-    HapticFeedback.selectionClick();
-    final isRtl = _lang == 'ar';
-    final id = item['id'] as String;
-    final extraAll = _placeExtras[id];
-    final extra =
-    (extraAll?[_lang] ?? extraAll?['fr']) as Map<String, dynamic>?;
-    final relIds = ((extraAll?['related'] as List?) ?? const []).cast<String>();
-    final all = _localizedData[_lang] ?? _localizedData['fr']!;
-    final related = <Map<String, dynamic>>[
-      for (final r in relIds) ...all.where((e) => e['id'] == r),
+  Widget _row(Map<String, dynamic> it, int n) {
+    final String id = it['id'] as String;
+    return _Reveal(
+      delay: Duration(milliseconds: 60 * (n > 5 ? 5 : n)),
+      dy: 28,
+      child: _PlaceCard(
+        number: n,
+        name: it['name'] as String? ?? '',
+        sub: (it['sub_category'] ?? '').toString(),
+        photo: it['photo_url'] as String? ?? '',
+        stamped: _stamps.contains(id),
+        fav: _favs.contains(id),
+        onFav: () => _toggleFav(id),
+        onTap: () => _openDetail(it),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Map<String, dynamic>> data = _data;
+    final bool rtl = _lang == 'ar';
+    final double h = MediaQuery.of(context).size.height;
+    final double topPad = MediaQuery.of(context).padding.top;
+
+    final List<String> catKeys = <String>[];
+    for (final Map<String, dynamic> it in data) {
+      final String k = it['sub_category_key'] as String? ?? 'catHistory';
+      if (!catKeys.contains(k)) catKeys.add(k);
+    }
+
+    final List<Map<String, dynamic>> visible =
+    data.where((Map<String, dynamic> it) {
+      if (_filter == 'all') return true;
+      if (_filter == 'fav') return _favs.contains(it['id']);
+      return it['sub_category_key'] == _filter;
+    }).toList();
+
+    final Map<String, dynamic> daily = data[
+    DateTime.now().difference(DateTime(DateTime.now().year, 1, 1)).inDays %
+        data.length];
+
+    final List<bool> flags = <bool>[
+      for (final Map<String, dynamic> it in data) _stamps.contains(it['id']),
     ];
-    final labels = <String, String>{
-      for (final k in const [
-        'about', 'overview', 'duration', 'bestTime', 'category',
-        'highlights', 'didYouKnow', 'tip', 'seeAlso',
-      ])
-        k: _getTranslatedText(k),
-    };
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 650),
-        reverseTransitionDuration: const Duration(milliseconds: 500),
-        pageBuilder: (_, __, ___) => Directionality(
-          textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
-          child: _PlaceDetailPage(
-            item: item,
-            color: color,
-            icon: icon,
-            mapsLabel: _getTranslatedText('mapsBtn'),
-            isFav: _favs.contains(item['id']),
-            onFav: () => _toggleFav(item['id'] as String),
-            onMaps: () =>
-                _ouvrirMaps(item['mapsQuery'] ?? "${item['name']} Alexandrie"),
-            labels: labels,
-            extra: extra,
-            related: related,
-            onOpenRelated: (r) {
-              final k = r['sub_category_key'] as String? ?? 'catHistory';
-              _openDetail(r, _getCategoryColor(k), _getCategoryIcon(k));
-            },
+
+    final List<Widget> rows = <Widget>[];
+    int n = 0;
+    if (_filter == 'all') {
+      for (final String k in catKeys) {
+        final List<Map<String, dynamic>> items = visible
+            .where((Map<String, dynamic> it) => it['sub_category_key'] == k)
+            .toList();
+        rows.add(_SectionHeader(
+            title: _t(k), count: '${items.length} ${_t('places')}'));
+        for (final Map<String, dynamic> it in items) {
+          n++;
+          rows.add(_row(it, n));
+        }
+      }
+    } else {
+      rows.add(const SizedBox(height: 18));
+      for (final Map<String, dynamic> it in visible) {
+        n++;
+        rows.add(_row(it, n));
+      }
+    }
+    if (visible.isEmpty) {
+      rows.add(Padding(
+        padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 30),
+        child: Column(
+          children: <Widget>[
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _C.surface,
+                border: Border.all(color: _C.line),
+              ),
+              child: const Icon(Icons.favorite_border_rounded,
+                  color: _C.gold, size: 30),
+            ),
+            const SizedBox(height: 20),
+            Text(_t('noFav'),
+                textAlign: TextAlign.center,
+                style: _body(16, color: _C.textSoft, height: 1.6)),
+          ],
+        ),
+      ));
+    }
+
+    return Directionality(
+      textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light,
+        child: Scaffold(
+          backgroundColor: _C.bg,
+          body: ScrollConfiguration(
+            behavior: WebScrollBehavior(),
+            child: CustomScrollView(
+              controller: _scroll,
+              physics: const BouncingScrollPhysics(),
+              slivers: <Widget>[
+                SliverToBoxAdapter(
+                  child: _Masthead(
+                    height: (h * 0.60).clamp(460.0, 640.0).toDouble(),
+                    topPad: topPad,
+                    title: _t('pageTitle'),
+                    tagline: _t('tagline'),
+                    countText: '${data.length} ${_t('places')}',
+                    liveLine: _liveLine,
+                    tick: _tick,
+                    langs: _buildLangs(),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: ValueListenableBuilder<DateTime>(
+                    valueListenable: _tick,
+                    builder: (BuildContext c, DateTime now, Widget? _) =>
+                        _buildSolar(now),
+                  ),
+                ),
+                SliverToBoxAdapter(child: _buildPlayRow(daily)),
+                SliverToBoxAdapter(child: _buildPassport(flags)),
+                const SliverToBoxAdapter(child: SizedBox(height: 18)),
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _FilterDelegate(
+                    child: _buildChips(catKeys),
+                    topPad: topPad,
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                  sliver: SliverList(delegate: SliverChildListDelegate(rows)),
+                ),
+                SliverToBoxAdapter(child: _Footer(title: _t('pageTitle'))),
+              ],
+            ),
           ),
         ),
-        transitionsBuilder: (_, anim, __, child) => FadeTransition(
-          opacity: CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
-          child: child,
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+//  FICHE DÉTAILLÉE
+// ═════════════════════════════════════════════════════════════
+
+/// Bouton secondaire de la barre du bas de la fiche.
+class _BarAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  const _BarAction({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _Press(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        height: 54,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: active ? _C.gold.withOpacity(0.16) : Colors.white.withOpacity(0.07),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: active ? _C.gold.withOpacity(0.55) : _C.line,
+            width: 0.9,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(icon, size: 20, color: active ? _C.gold : _C.text),
+            const SizedBox(width: 6),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  softWrap: false,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: active ? _C.goldLight : _C.text,
+                    letterSpacing: _ls(context, 0.1),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PlaceDetailPage extends StatefulWidget {
+  final Map<String, dynamic> item;
+  final Map<String, dynamic>? extra;
+  final Map<String, String> labels;
+  final List<Map<String, dynamic>> related;
+  final bool isFav;
+  final bool isStamped;
+  final VoidCallback onFav;
+  final VoidCallback onStamp;
+  final ValueChanged<int> onVisitDone;
+  final VoidCallback onMaps;
+  final ValueChanged<Map<String, dynamic>> onOpenRelated;
+
+  const _PlaceDetailPage({
+    required this.item,
+    required this.extra,
+    required this.labels,
+    required this.related,
+    required this.isFav,
+    required this.isStamped,
+    required this.onFav,
+    required this.onStamp,
+    required this.onVisitDone,
+    required this.onMaps,
+    required this.onOpenRelated,
+  });
+
+  @override
+  State<_PlaceDetailPage> createState() => _PlaceDetailPageState();
+}
+
+class _PlaceDetailPageState extends State<_PlaceDetailPage> {
+  late bool _fav = widget.isFav;
+  late bool _stamped = widget.isStamped;
+
+  String _l(String k) => widget.labels[k] ?? k;
+
+  void _toggleFavLocal() {
+    HapticFeedback.selectionClick();
+    setState(() => _fav = !_fav);
+    widget.onFav();
+  }
+
+  void _toggleStampLocal() {
+    HapticFeedback.mediumImpact();
+    setState(() => _stamped = !_stamped);
+    widget.onStamp();
+  }
+
+  void _openTimer() {
+    final bool rtl = Directionality.of(context) == TextDirection.rtl;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext _) => Directionality(
+        textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
+        child: _VisitSheet(
+          name: '${widget.item['name']}',
+          labels: widget.labels,
+          onFinished: widget.onVisitDone,
         ),
       ),
     );
   }
 
-  Widget _wrap(Key key, Widget child) {
-    return Center(
-      key: key,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1120),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 22),
-          child: child,
+  Widget _buildHeader(BuildContext context, double h, bool rtl) {
+    final double imgH = (h * 0.54).clamp(380.0, 560.0).toDouble();
+    final double top = MediaQuery.of(context).padding.top;
+    return SizedBox(
+      height: imgH,
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          _KenBurns(
+              child: _PlaceImage(widget.item['photo_url'] as String? ?? '')),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: <Color>[
+                  Colors.black.withOpacity(0.55),
+                  Colors.transparent,
+                  _C.bg.withOpacity(0.85),
+                  _C.bg,
+                ],
+                stops: const <double>[0, 0.28, 0.80, 1],
+              ),
+            ),
+          ),
+          PositionedDirectional(
+            top: top + 12,
+            start: 18,
+            child: _CircleBtn(
+              icon: rtl
+                  ? Icons.arrow_forward_ios_rounded
+                  : Icons.arrow_back_ios_new_rounded,
+              onTap: () => Navigator.of(context).pop(),
+            ),
+          ),
+          PositionedDirectional(
+            top: top + 12,
+            end: 18,
+            child: _CircleBtn(
+              icon: _fav
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
+              active: _fav,
+              onTap: _toggleFavLocal,
+            ),
+          ),
+          PositionedDirectional(
+            start: 20,
+            end: 20,
+            bottom: 12,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                _Glass(
+                  radius: 99,
+                  blur: 14,
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                            shape: BoxShape.circle, color: _C.gold),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          '${widget.item['sub_category'] ?? ''}',
+                          style: _label(context,
+                              size: 12.5, color: _C.text, ls: 0.1),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  '${widget.item['name']}',
+                  style: _display(context, 40,
+                      weight: FontWeight.w800, height: 1.02, ls: -1.4),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomBar(double bottomPad) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 0, 16, 12 + bottomPad),
+      child: _Glass(
+        radius: 30,
+        blur: 28,
+        tint: _C.bg.withOpacity(0.62),
+        padding: const EdgeInsets.all(8),
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              flex: 3,
+              child: _BarAction(
+                icon: _stamped
+                    ? Icons.verified_rounded
+                    : Icons.verified_outlined,
+                label: _stamped ? _l('btnStampDone') : _l('btnStamp'),
+                active: _stamped,
+                onTap: _toggleStampLocal,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 3,
+              child: _BarAction(
+                icon: Icons.timer_outlined,
+                label: _l('btnTimer'),
+                active: false,
+                onTap: _openTimer,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 4,
+              child: _GoldButton(
+                label: _l('btnMaps'),
+                icon: Icons.near_me_rounded,
+                height: 54,
+                onTap: widget.onMaps,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -593,239 +2794,786 @@ class _AlexandriePageState extends State<AlexandriePage>
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> currentData =
-        _localizedData[_lang] ?? _localizedData['fr']!;
-    final bool isRtl = _lang == 'ar';
-    final double topPad = MediaQuery.of(context).padding.top;
-    final double screenH = MediaQuery.of(context).size.height;
-    final double heroH = (screenH * 0.82).clamp(500.0, 800.0).toDouble();
+    final Map<String, dynamic> it = widget.item;
+    final Map<String, dynamic>? ex = widget.extra;
+    final double h = MediaQuery.of(context).size.height;
+    final double bottomPad = MediaQuery.of(context).padding.bottom;
+    final bool rtl = Directionality.of(context) == TextDirection.rtl;
+    final List<dynamic> hl = (ex?['hl'] as List?) ?? const <dynamic>[];
+    final String? fact = ex?['fact'] as String?;
+    final String? tip = ex?['tip'] as String?;
 
-    // Catégories dans l'ordre d'apparition
-    final List<String> catKeys = [];
-    for (final item in currentData) {
-      final k = item['sub_category_key'] as String? ?? 'catHistory';
-      if (!catKeys.contains(k)) catKeys.add(k);
-    }
-
-    // Filtrage
-    final List<Map<String, dynamic>> visible = currentData.where((item) {
-      if (_filter == 'all') return true;
-      if (_filter == 'fav') return _favs.contains(item['id']);
-      return item['sub_category_key'] == _filter;
-    }).toList();
-
-    // Lignes (en-têtes + cartes)
-    final List<_Entry> entries = [];
-    if (_filter == 'all') {
-      for (final k in catKeys) {
-        final items =
-        visible.where((e) => e['sub_category_key'] == k).toList();
-        entries.add(_Entry(header: k, count: items.length));
-        for (final it in items) {
-          entries.add(_Entry(item: it));
-        }
-      }
-    } else {
-      for (final it in visible) {
-        entries.add(_Entry(item: it));
-      }
-    }
-
-    // Numérotation éditoriale des cartes (01, 02, 03…)
-    final List<int> nums = [];
-    int n = 0;
-    for (final e in entries) {
-      if (e.item != null) {
-        n++;
-        nums.add(n);
-      } else {
-        nums.add(0);
-      }
-    }
-
-    final String ctxKey = '${_lang}_$_filter';
-
-    return Directionality(
-      textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: _C.bg,
-        floatingActionButton: AnimatedScale(
-          scale: _showTop ? 1 : 0,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeOutBack,
-          child: FloatingActionButton.small(
-            backgroundColor: _C.bg.withOpacity(0.92),
-            foregroundColor: _C.gold,
-            elevation: 0,
-            hoverElevation: 0,
-            focusElevation: 0,
-            highlightElevation: 0,
-            shape: CircleBorder(
-              side: BorderSide(color: _C.gold.withOpacity(0.6)),
-            ),
-            onPressed: () => _mainScrollController.animateTo(
-              0,
-              duration: const Duration(milliseconds: 900),
-              curve: Curves.easeInOutCubic,
-            ),
-            child: const Icon(Icons.keyboard_arrow_up_rounded, size: 26),
-          ),
-        ),
-        body: ScrollConfiguration(
-          behavior: WebScrollBehavior(),
-          child: CustomScrollView(
-            controller: _mainScrollController,
-            physics: const ClampingScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: _Hero(
-                  topPad: topPad,
-                  height: heroH,
-                  title: _getTranslatedText('pageTitle'),
-                  tagline: _getTranslatedText('tagline'),
-                  countText:
-                  '${currentData.length} ${_getTranslatedText('places')}',
-                  langSwitcher: _buildLangSwitcher(),
-                  shimmer: _shimmer,
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
-                    child: SizedBox(
-                      height: 148,
-                      width: double.infinity,
-                      child: Image.asset(
-                        'assets/images/alexandrie.jpg',
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _FilterBarDelegate(
-                  topPad: topPad,
-                  child: LayoutBuilder(
-                    builder: (context, cons) => SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(minWidth: cons.maxWidth),
-                        child: SizedBox(
-                          height: 64,
+        body: Stack(
+          children: <Widget>[
+            CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: <Widget>[
+                SliverToBoxAdapter(child: _buildHeader(context, h, rtl)),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        IntrinsicHeight(
                           child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              const SizedBox(width: 8),
-                              _buildTab(
-                                id: 'all',
-                                label: _getTranslatedText('all'),
-                              ),
-                              _buildTab(
-                                id: 'fav',
-                                label: _getTranslatedText('favs'),
-                                icon: Icons.favorite_border_rounded,
-                              ),
-                              ...catKeys.map(
-                                    (k) => _buildTab(
-                                  id: k,
-                                  label: _getTranslatedText(k),
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: <Widget>[
+                              Expanded(
+                                child: _MetaTile(
+                                  icon: Icons.schedule_rounded,
+                                  label: _l('duration'),
+                                  value: (ex?['duration'] ?? '—').toString(),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _MetaTile(
+                                  icon: Icons.wb_twilight_rounded,
+                                  label: _l('bestTime'),
+                                  value: (ex?['best'] ?? '—').toString(),
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 28),
+                        Text(it['description'] as String? ?? '',
+                            style: _body(16.5,
+                                color: const Color(0xFFD3D6DE), height: 1.75)),
+                      ],
                     ),
                   ),
                 ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.only(top: 8, bottom: 20),
-                sliver: entries.isEmpty
-                    ? SliverToBoxAdapter(
-                  child: _Reveal(
-                    key: ValueKey('empty_$ctxKey'),
+                if (hl.isNotEmpty)
+                  SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 110, horizontal: 30),
+                      padding: const EdgeInsets.fromLTRB(20, 40, 20, 0),
                       child: Column(
-                        children: [
-                          Icon(Icons.favorite_border_rounded,
-                              size: 46,
-                              color: _C.gold.withOpacity(0.6)),
-                          const SizedBox(height: 22),
-                          const _Ornament(width: 110),
-                          const SizedBox(height: 22),
-                          Text(
-                            _getTranslatedText('noFav'),
-                            textAlign: TextAlign.center,
-                            style: _serif(
-                              context,
-                              size: 20,
-                              weight: FontWeight.w400,
-                              color: _C.cream.withOpacity(0.75),
-                              height: 1.7,
-                              style: FontStyle.italic,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          _DetailLabel(text: _l('highlights')),
+                          const SizedBox(height: 18),
+                          for (int i = 0; i < hl.length; i++)
+                            _HighlightCard(
+                              number: i + 1,
+                              title: '${(hl[i] as Map)['t']}',
+                              desc: '${(hl[i] as Map)['d']}',
                             ),
-                          ),
                         ],
                       ),
                     ),
                   ),
-                )
-                    : SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                        (context, i) {
-                      final e = entries[i];
-                      if (e.header != null) {
-                        final k = e.header!;
-                        return _wrap(
-                          ValueKey('h_${ctxKey}_$k'),
-                          _Reveal(
-                            child: _SectionHeader(
-                              title: _getTranslatedText(k),
-                              countLabel:
-                              '${e.count} ${_getTranslatedText('places')}',
-                            ),
+                if (fact != null)
+                  SliverToBoxAdapter(
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                      padding: const EdgeInsets.all(22),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: <Color>[
+                            _C.gold.withOpacity(0.17),
+                            _C.gold.withOpacity(0.04),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                            color: _C.gold.withOpacity(0.32), width: 0.9),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Row(
+                            children: <Widget>[
+                              const Icon(Icons.auto_awesome_rounded,
+                                  color: _C.gold, size: 19),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(_l('didYouKnow'),
+                                    style: _label(context,
+                                        size: 14,
+                                        color: _C.goldLight,
+                                        ls: 0.1,
+                                        weight: FontWeight.w700)),
+                              ),
+                            ],
                           ),
-                        );
-                      }
-                      final item = e.item!;
-                      final k = item['sub_category_key'] as String? ??
-                          'catHistory';
-                      final id = item['id'] as String;
-                      return _wrap(
-                        ValueKey('c_${ctxKey}_$id'),
-                        _Reveal(
-                          delay:
-                          Duration(milliseconds: math.min(i, 2) * 80),
-                          dy: 44,
-                          child: _PlaceCard(
-                            item: item,
-                            number: nums[i],
-                            icon: _getCategoryIcon(k),
-                            isFav: _favs.contains(id),
-                            discoverLabel: _getTranslatedText('discover'),
-                            onFav: () => _toggleFav(id),
-                            onTap: () => _openDetail(
-                                item, _getCategoryColor(k), _getCategoryIcon(k)),
+                          const SizedBox(height: 14),
+                          Text(fact,
+                              style: _display(context, 19.5,
+                                  weight: FontWeight.w600,
+                                  height: 1.42,
+                                  ls: -0.3)),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (tip != null)
+                  SliverToBoxAdapter(
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                      padding: const EdgeInsets.all(22),
+                      decoration: BoxDecoration(
+                        color: _C.surface,
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: _C.line),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Row(
+                            children: <Widget>[
+                              const Icon(Icons.lightbulb_outline_rounded,
+                                  color: _C.gold, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(_l('tip'),
+                                    style: _label(context,
+                                        size: 14,
+                                        color: _C.gold,
+                                        ls: 0.1,
+                                        weight: FontWeight.w700)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(tip,
+                              style: _body(15.5,
+                                  color: const Color(0xFFD3D6DE), height: 1.7)),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (widget.related.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 40, 20, 18),
+                          child: _DetailLabel(text: _l('seeAlso')),
+                        ),
+                        SizedBox(
+                          height: 210,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            itemCount: widget.related.length,
+                            separatorBuilder: (BuildContext _, int __) =>
+                            const SizedBox(width: 14),
+                            itemBuilder: (BuildContext _, int i) =>
+                                _RelatedTile(
+                                  item: widget.related[i],
+                                  onTap: () =>
+                                      widget.onOpenRelated(widget.related[i]),
+                                ),
                           ),
                         ),
-                      );
-                    },
-                    childCount: entries.length,
+                      ],
+                    ),
                   ),
+                SliverToBoxAdapter(child: SizedBox(height: 120 + bottomPad)),
+              ],
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _buildBottomBar(bottomPad),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+//  MINUTEUR DE VISITE
+// ═════════════════════════════════════════════════════════════
+class _VisitSheet extends StatefulWidget {
+  final String name;
+  final Map<String, String> labels;
+  final ValueChanged<int> onFinished;
+  const _VisitSheet({
+    required this.name,
+    required this.labels,
+    required this.onFinished,
+  });
+
+  @override
+  State<_VisitSheet> createState() => _VisitSheetState();
+}
+
+class _VisitSheetState extends State<_VisitSheet> {
+  static const List<int> _options = <int>[30, 60, 90];
+  int _mins = 60;
+  int _elapsed = 0; // secondes
+  bool _running = false;
+  bool _done = false;
+  Timer? _tm;
+
+  String _l(String k) => widget.labels[k] ?? k;
+
+  @override
+  void dispose() {
+    _tm?.cancel();
+    super.dispose();
+  }
+
+  void _start() {
+    HapticFeedback.selectionClick();
+    _tm?.cancel();
+    setState(() {
+      _running = true;
+      _done = false;
+      _elapsed = 0;
+    });
+    _tm = Timer.periodic(const Duration(seconds: 1), (Timer _) {
+      if (!mounted) return;
+      setState(() => _elapsed++);
+      if (_elapsed >= _mins * 60) _finish(true);
+    });
+  }
+
+  void _finish(bool completed) {
+    _tm?.cancel();
+    final int spent = completed ? _mins : _elapsed ~/ 60;
+    HapticFeedback.heavyImpact();
+    setState(() {
+      _running = false;
+      _done = completed;
+    });
+    if (spent > 0) widget.onFinished(spent);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final int total = _mins * 60;
+    final int left = (total - _elapsed).clamp(0, total).toInt();
+    final String clock = '${_two(left ~/ 60)}:${_two(left % 60)}';
+    final double bottom = MediaQuery.of(context).padding.bottom;
+    final double progress = (_running || _done) ? _elapsed / total : 0.0;
+    return Container(
+      padding: EdgeInsets.fromLTRB(24, 12, 24, 24 + bottom),
+      decoration: const BoxDecoration(
+        color: _C.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(34)),
+        border: Border(top: BorderSide(color: Color(0x1FFFFFFF), width: 0.8)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.18),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(_l('visitTitle'),
+                        style: _label(context,
+                            size: 13, color: _C.gold, ls: 0.2)),
+                    const SizedBox(height: 6),
+                    Text(widget.name,
+                        style: _display(context, 24, height: 1.1, ls: -0.6)),
+                  ],
                 ),
               ),
-              SliverToBoxAdapter(
-                child: _Footer(title: _getTranslatedText('pageTitle')),
+              const SizedBox(width: 12),
+              _CircleBtn(
+                icon: Icons.close_rounded,
+                solid: true,
+                size: 40,
+                onTap: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 26),
+          Center(
+            child: SizedBox(
+              width: 236,
+              height: 236,
+              child: Stack(
+                alignment: Alignment.center,
+                children: <Widget>[
+                  Positioned.fill(
+                    child: CustomPaint(painter: _RingPainter(progress)),
+                  ),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(clock,
+                        softWrap: false,
+                        style: _num(56, weight: FontWeight.w700, ls: -1.5)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 24,
+            child: Center(
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 300),
+                opacity: _done ? 1 : 0,
+                child: Text(_l('visitDone'),
+                    style: _body(14.5, color: _C.gold, weight: FontWeight.w600)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          IgnorePointer(
+            ignoring: _running,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 250),
+              opacity: _running ? 0.0 : 1.0,
+              child: Row(
+                children: <Widget>[
+                  for (int i = 0; i < _options.length; i++) ...<Widget>[
+                    if (i > 0) const SizedBox(width: 10),
+                    Expanded(
+                      child: _Press(
+                        scale: 0.94,
+                        onTap: () => setState(() => _mins = _options[i]),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 240),
+                          height: 48,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            gradient: _mins == _options[i] ? _C.goldGrad : null,
+                            color: _mins == _options[i] ? null : _C.surfaceHi,
+                            borderRadius: BorderRadius.circular(16),
+                            border: _mins == _options[i]
+                                ? null
+                                : Border.all(color: _C.line),
+                          ),
+                          child: Text(
+                            '${_options[i]} ${_l('mUnit')}',
+                            style: TextStyle(
+                              color: _mins == _options[i]
+                                  ? _C.onGold
+                                  : _C.textSoft,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          _GoldButton(
+            label: _running ? _l('stop') : _l('start'),
+            icon: _running ? Icons.stop_rounded : Icons.play_arrow_rounded,
+            filled: !_running,
+            onTap: _running ? () => _finish(false) : _start,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+//  JEU : DEVINE LE LIEU
+// ═════════════════════════════════════════════════════════════
+
+/// Petite tuile de statistique (score, série, record).
+class _StatTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool hot;
+  const _StatTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.hot = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: hot ? _C.gold.withOpacity(0.10) : _C.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: hot ? _C.gold.withOpacity(0.35) : _C.line,
+          width: 0.9,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(icon, size: 14, color: hot ? _C.gold : _C.textDim),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(label,
+                    style: _label(context, size: 11.5, ls: 0.1)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(value,
+              style: _num(22,
+                  color: hot ? _C.goldLight : _C.text,
+                  weight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuizPage extends StatefulWidget {
+  final List<Map<String, dynamic>> places;
+  final Map<String, String> facts;
+  final Map<String, String> labels;
+  const _QuizPage({
+    required this.places,
+    required this.facts,
+    required this.labels,
+  });
+
+  @override
+  State<_QuizPage> createState() => _QuizPageState();
+}
+
+class _QuizPageState extends State<_QuizPage> {
+  final math.Random _rng = math.Random();
+  Map<String, dynamic>? _target;
+  List<Map<String, dynamic>> _options = <Map<String, dynamic>>[];
+  String? _picked;
+  int _score = 0;
+  int _streak = 0;
+  int _best = 0;
+
+  String _l(String k) => widget.labels[k] ?? k;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBest();
+    _next();
+  }
+
+  Future<void> _loadBest() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() => _best = prefs.getInt('quiz_best') ?? 0);
+  }
+
+  void _next() {
+    final List<Map<String, dynamic>> pool = widget.places
+        .where((Map<String, dynamic> p) => widget.facts.containsKey(p['id']))
+        .toList();
+    if (pool.length < 3) return;
+    pool.shuffle(_rng);
+    final Map<String, dynamic> target = pool.first;
+    final List<Map<String, dynamic>> opts = <Map<String, dynamic>>[
+      target,
+      pool[1],
+      pool[2],
+    ]..shuffle(_rng);
+    setState(() {
+      _target = target;
+      _options = opts;
+      _picked = null;
+    });
+  }
+
+  Future<void> _answer(Map<String, dynamic> o) async {
+    if (_picked != null || _target == null) return;
+    final bool ok = o['id'] == _target!['id'];
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _picked = o['id'] as String;
+      if (ok) {
+        _score++;
+        _streak++;
+      } else {
+        _streak = 0;
+      }
+      if (_streak > _best) _best = _streak;
+    });
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('quiz_best', _best);
+  }
+
+  Future<void> _confirmResetQuiz() async {
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => Directionality(
+        textDirection: Directionality.of(context),
+        child: AlertDialog(
+          backgroundColor: _C.surface,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: _C.line),
+            borderRadius: BorderRadius.circular(28),
+          ),
+          title: Text(_l('quizResetAsk'),
+              style: _display(ctx, 21, height: 1.2, ls: -0.4)),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(_l('cancel'),
+                  style: const TextStyle(
+                      color: _C.textSoft, fontWeight: FontWeight.w600)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(_l('resetYes'),
+                  style: const TextStyle(
+                      color: _C.gold, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (ok != true || !mounted) return;
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _score = 0;
+      _streak = 0;
+      _best = 0;
+    });
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove('quiz_best');
+  }
+
+  _OptState _stateOf(Map<String, dynamic> o) {
+    if (_picked == null) return _OptState.idle;
+    if (o['id'] == _target?['id']) return _OptState.right;
+    if (o['id'] == _picked) return _OptState.wrong;
+    return _OptState.faded;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Map<String, dynamic>? target = _target;
+    final String fact =
+    target == null ? '' : (widget.facts[target['id']] ?? '');
+    final bool answered = _picked != null;
+    final bool ok = answered && _picked == target?['id'];
+    final String targetName = target == null ? '' : '${target['name']}';
+    final double bottom = MediaQuery.of(context).padding.bottom;
+    final bool rtl = Directionality.of(context) == TextDirection.rtl;
+    final List<String> letters = rtl
+        ? const <String>['أ', 'ب', 'ج']
+        : const <String>['A', 'B', 'C'];
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: _C.bg,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 10, 20, 16),
+                child: Row(
+                  children: <Widget>[
+                    _CircleBtn(
+                      icon: rtl
+                          ? Icons.arrow_forward_ios_rounded
+                          : Icons.arrow_back_ios_new_rounded,
+                      solid: true,
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(_l('quizTitle'),
+                          style: _display(context, 22, ls: -0.5)),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: _StatTile(
+                        icon: Icons.star_rounded,
+                        label: _l('score'),
+                        value: '$_score',
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _StatTile(
+                        icon: Icons.local_fire_department_rounded,
+                        label: _l('streak'),
+                        value: '$_streak',
+                        hot: _streak >= 2,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _StatTile(
+                        icon: Icons.emoji_events_rounded,
+                        label: _l('record'),
+                        value: '$_best',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_score > 0 || _streak > 0 || _best > 0)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _confirmResetQuiz,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Text(
+                          _l('quizReset'),
+                          style: _label(context,
+                              size: 13, color: _C.gold, ls: 0.1),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + bottom),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(_l('quizIntro'),
+                          style: _body(15, color: _C.textSoft)),
+                      const SizedBox(height: 16),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 350),
+                        switchInCurve: Curves.easeOutCubic,
+                        transitionBuilder: (Widget c, Animation<double> a) =>
+                            FadeTransition(
+                              opacity: a,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0, 0.04),
+                                  end: Offset.zero,
+                                ).animate(a),
+                                child: c,
+                              ),
+                            ),
+                        child: Container(
+                          key: ValueKey<Object?>(target?['id']),
+                          width: double.infinity,
+                          padding: const EdgeInsets.fromLTRB(22, 16, 22, 24),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: <Color>[
+                                _C.gold.withOpacity(0.17),
+                                _C.gold.withOpacity(0.04),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                                color: _C.gold.withOpacity(0.32), width: 0.9),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              const Icon(Icons.format_quote_rounded,
+                                  color: _C.gold, size: 40),
+                              const SizedBox(height: 4),
+                              Text(
+                                fact,
+                                style: _display(context, 21,
+                                    weight: FontWeight.w600,
+                                    height: 1.42,
+                                    ls: -0.3),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 26),
+                      Text(_l('quizQ'),
+                          style: _label(context,
+                              size: 13, color: _C.textSoft, ls: 0.1)),
+                      const SizedBox(height: 12),
+                      for (int i = 0; i < _options.length; i++)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _OptionTile(
+                            letter: letters[i],
+                            label: '${_options[i]['name']}',
+                            state: _stateOf(_options[i]),
+                            onTap: () => _answer(_options[i]),
+                          ),
+                        ),
+                      if (answered) ...<Widget>[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: <Widget>[
+                            Icon(
+                              ok
+                                  ? Icons.check_circle_rounded
+                                  : Icons.info_rounded,
+                              color: ok ? _C.good : _C.gold,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                ok
+                                    ? _l('rightAns')
+                                    : _l('wrongAns')
+                                    .replaceAll('{n}', targetName),
+                                style: _display(context, 17.5,
+                                    weight: FontWeight.w600,
+                                    height: 1.3,
+                                    ls: -0.2),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        _GoldButton(
+                          label: _l('next'),
+                          icon: Icons.arrow_forward_rounded,
+                          onTap: _next,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -835,22 +3583,9 @@ class _AlexandriePageState extends State<AlexandriePage>
   }
 }
 
-
-// ─────────────────────────────────────────────────────────────
-//  OUTILS
-// ─────────────────────────────────────────────────────────────
-
-/// Le letterSpacing casse la liaison des lettres arabes : on l'annule en RTL.
-double _ls(BuildContext c, double v) =>
-    Directionality.of(c) == TextDirection.rtl ? 0 : v;
-
-class _Entry {
-  final String? header;
-  final int count;
-  final Map<String, dynamic>? item;
-  _Entry({this.header, this.count = 0, this.item});
-}
-
+// ═════════════════════════════════════════════════════════════
+//  ANIMATION D'APPARITION
+// ═════════════════════════════════════════════════════════════
 /// Apparition douce : fondu + glissement vers le haut, avec délai.
 class _Reveal extends StatefulWidget {
   final Widget child;
@@ -908,1615 +3643,6 @@ class _RevealState extends State<_Reveal> with SingleTickerProviderStateMixin {
   }
 }
 
-class _PlaceImage extends StatelessWidget {
-  final String path;
-  const _PlaceImage(this.path);
-
-  @override
-  Widget build(BuildContext context) {
-    return Image.asset(
-      path,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => const DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF2A2017), Color(0xFF5A4122)],
-          ),
-        ),
-        child: Center(
-          child: Icon(Icons.landscape_outlined, color: _C.gold, size: 48),
-        ),
-      ),
-    );
-  }
-}
-
-/// Motif de losanges façon moucharabieh.
-class _LatticePainter extends CustomPainter {
-  final double opacity;
-  _LatticePainter(this.opacity);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (opacity <= 0) return;
-    final p = Paint()
-      ..color = _C.gold.withOpacity(opacity)
-      ..strokeWidth = 0.8;
-    const s = 46.0;
-    for (double x = -size.height; x < size.width + size.height; x += s) {
-      canvas.drawLine(Offset(x, 0), Offset(x + size.height, size.height), p);
-      canvas.drawLine(Offset(x, size.height), Offset(x + size.height, 0), p);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _LatticePainter old) => old.opacity != opacity;
-}
-
-
-// ─────────────────────────────────────────────────────────────
-//  TYPOGRAPHIE & ORNEMENTS
-// ─────────────────────────────────────────────────────────────
-const List<String> _serifFallback = [
-  'Cormorant Garamond',
-  'Playfair Display',
-  'Georgia',
-  'Times New Roman',
-  'Noto Serif',
-  'serif',
-];
-
-TextStyle _serif(
-    BuildContext c, {
-      required double size,
-      FontWeight weight = FontWeight.w500,
-      Color color = _C.cream,
-      double height = 1.2,
-      double ls = 0,
-      FontStyle? style,
-    }) =>
-    TextStyle(
-      fontFamily: 'Cormorant Garamond',
-      fontFamilyFallback: _serifFallback,
-      fontSize: size,
-      fontWeight: weight,
-      color: color,
-      height: height,
-      letterSpacing: _ls(c, ls),
-      fontStyle: style,
-    );
-
-/// Filet doré – losange – filet doré.
-class _Ornament extends StatelessWidget {
-  final double width;
-  const _Ornament({this.width = 140});
-
-  @override
-  Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: SizedBox(
-        width: width,
-        child: Row(
-          children: [
-            Expanded(
-              child: Container(
-                height: 1,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.transparent, _C.gold.withOpacity(0.8)],
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Transform.rotate(
-                angle: math.pi / 4,
-                child: Container(width: 6, height: 6, color: _C.gold),
-              ),
-            ),
-            Expanded(
-              child: Container(
-                height: 1,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [_C.gold.withOpacity(0.8), Colors.transparent],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-//  HERO PLEIN ÉCRAN (un bloc de la page : il défile comme sur un site)
-// ─────────────────────────────────────────────────────────────
-class _Hero extends StatelessWidget {
-  final double topPad;
-  final double height;
-  final String title;
-  final String tagline;
-  final String countText;
-  final Widget langSwitcher;
-  final AnimationController shimmer;
-
-  const _Hero({
-    required this.topPad,
-    required this.height,
-    required this.title,
-    required this.tagline,
-    required this.countText,
-    required this.langSwitcher,
-    required this.shimmer,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-    final titleSize = (w * 0.15).clamp(56.0, 118.0).toDouble();
-
-    return SizedBox(
-      height: height,
-      child: ClipRect(
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Photo avec très lente respiration
-            AnimatedBuilder(
-              animation: shimmer,
-              builder: (_, __) {
-                final z = 1.08 + 0.04 * math.sin(shimmer.value * 2 * math.pi);
-                return Transform.scale(
-                  scale: z,
-                  child: const _PlaceImage('assets/alexendrie/qai.jpg'),
-                );
-              },
-            ),
-            // Voile cinéma, qui se fond dans le fond de la page
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0x99000000),
-                    Color(0x1A000000),
-                    Color(0x66000000),
-                    Color(0xFF0C0A09),
-                  ],
-                  stops: [0, 0.28, 0.62, 1],
-                ),
-              ),
-            ),
-            Positioned.fill(
-              child: IgnorePointer(
-                child: CustomPaint(painter: _LatticePainter(0.035)),
-              ),
-            ),
-            // Cadre doré fin
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(18, topPad + 74, 18, 18),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: _C.gold.withOpacity(0.3),
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            // Contenu central
-            Positioned.directional(
-              textDirection: Directionality.of(context),
-              start: 24,
-              end: 24,
-              bottom: 70,
-              child: _HeroTitle(
-                title: title,
-                tagline: tagline,
-                countText: countText,
-                titleSize: titleSize,
-                shimmer: shimmer,
-              ),
-            ),
-            // Langues, en haut de la page
-            Positioned.directional(
-              textDirection: Directionality.of(context),
-              top: topPad + 14,
-              end: 18,
-              child: langSwitcher,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HeroTitle extends StatelessWidget {
-  final String title;
-  final String tagline;
-  final String countText;
-  final double titleSize;
-  final AnimationController shimmer;
-
-  const _HeroTitle({
-    required this.title,
-    required this.tagline,
-    required this.countText,
-    required this.titleSize,
-    required this.shimmer,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 1600),
-      curve: Curves.easeOutCubic,
-      builder: (context, v, _) => Opacity(
-        opacity: v,
-        child: Transform.translate(
-          offset: Offset(0, 34 * (1 - v)),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const _Ornament(width: 150),
-              const SizedBox(height: 22),
-              Text(
-                countText.toUpperCase(),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _C.gold,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: _ls(context, 5),
-                ),
-              ),
-              const SizedBox(height: 14),
-              AnimatedBuilder(
-                animation: shimmer,
-                builder: (_, child) => ShaderMask(
-                  blendMode: BlendMode.srcIn,
-                  shaderCallback: (r) => LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: const [_C.cream, _C.gold, _C.cream],
-                    stops: [
-                      (shimmer.value - 0.25).clamp(0.0, 1.0).toDouble(),
-                      shimmer.value,
-                      (shimmer.value + 0.25).clamp(0.0, 1.0).toDouble(),
-                    ],
-                  ).createShader(r),
-                  child: child,
-                ),
-                child: Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: _serif(
-                    context,
-                    size: titleSize,
-                    weight: FontWeight.w500,
-                    color: Colors.white,
-                    height: 1.0,
-                    ls: 3,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                tagline,
-                textAlign: TextAlign.center,
-                style: _serif(
-                  context,
-                  size: 22,
-                  weight: FontWeight.w400,
-                  color: _C.cream.withOpacity(0.92),
-                  style: FontStyle.italic,
-                  ls: 0.4,
-                ),
-              ),
-              const SizedBox(height: 36),
-              Container(
-                width: 1,
-                height: 46,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [_C.gold, _C.gold.withOpacity(0)],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-//  BARRE DE FILTRES ÉPINGLÉE
-// ─────────────────────────────────────────────────────────────
-class _FilterBarDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-  final double topPad;
-  _FilterBarDelegate({required this.child, this.topPad = 0});
-
-  @override
-  double get minExtent => 64 + topPad;
-  @override
-  double get maxExtent => 64 + topPad;
-
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          decoration: BoxDecoration(
-            color: _C.bg.withOpacity(overlapsContent ? 0.9 : 0.97),
-            border: Border(
-              bottom: BorderSide(color: _C.gold.withOpacity(0.18)),
-            ),
-          ),
-          padding: EdgeInsets.only(top: topPad),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1120),
-              child: child,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _FilterBarDelegate old) => true;
-}
-
-// ─────────────────────────────────────────────────────────────
-//  EN-TÊTE DE SECTION & PIED DE PAGE
-// ─────────────────────────────────────────────────────────────
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final String countLabel;
-  const _SectionHeader({required this.title, required this.countLabel});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 90, bottom: 28),
-      child: Column(
-        children: [
-          const _Ornament(width: 120),
-          const SizedBox(height: 26),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: _serif(
-              context,
-              size: 40,
-              weight: FontWeight.w500,
-              height: 1.1,
-              ls: 1,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            countLabel.toUpperCase(),
-            style: TextStyle(
-              color: _C.gold,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: _ls(context, 4),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Footer extends StatelessWidget {
-  final String title;
-  const _Footer({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 70, bottom: 130),
-      child: Column(
-        children: [
-          const _Ornament(width: 160),
-          const SizedBox(height: 24),
-          Text(
-            title.toUpperCase(),
-            style: _serif(
-              context,
-              size: 18,
-              weight: FontWeight.w600,
-              color: _C.gold,
-              ls: 7,
-              height: 1.0,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-//  CARTE ÉDITORIALE
-// ─────────────────────────────────────────────────────────────
-class _PlaceCard extends StatefulWidget {
-  final Map<String, dynamic> item;
-  final int number;
-  final IconData icon;
-  final bool isFav;
-  final String discoverLabel;
-  final VoidCallback onFav;
-  final VoidCallback onTap;
-
-  const _PlaceCard({
-    required this.item,
-    required this.number,
-    required this.icon,
-    required this.isFav,
-    required this.discoverLabel,
-    required this.onFav,
-    required this.onTap,
-  });
-
-  @override
-  State<_PlaceCard> createState() => _PlaceCardState();
-}
-
-class _PlaceCardState extends State<_PlaceCard> {
-  bool _hover = false;
-
-  Widget _image(BuildContext context, double aspect) {
-    final it = widget.item;
-    final id = it['id'] as String;
-    return AspectRatio(
-      aspectRatio: aspect,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(3),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            AnimatedScale(
-              scale: _hover ? 1.06 : 1.0,
-              duration: const Duration(milliseconds: 1100),
-              curve: Curves.easeOutCubic,
-              child: Hero(
-                tag: 'img_$id',
-                child: _PlaceImage(it['photo_url'] ?? ''),
-              ),
-            ),
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0x66000000),
-                    Color(0x00000000),
-                    Color(0x00000000),
-                    Color(0x59000000),
-                  ],
-                  stops: [0, 0.25, 0.7, 1],
-                ),
-              ),
-            ),
-            // Cadre doré intérieur
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 500),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: _C.gold.withOpacity(_hover ? 0.85 : 0.32),
-                  ),
-                ),
-              ),
-            ),
-            PositionedDirectional(
-              top: 26,
-              start: 28,
-              child: Text(
-                widget.number.toString().padLeft(2, '0'),
-                style: _serif(
-                  context,
-                  size: 26,
-                  weight: FontWeight.w500,
-                  color: Colors.white.withOpacity(0.92),
-                  height: 1.0,
-                  ls: 1,
-                ),
-              ),
-            ),
-            PositionedDirectional(
-              top: 18,
-              end: 20,
-              child: _HeartButton(isFav: widget.isFav, onTap: widget.onFav),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _text(BuildContext context, {required bool wide}) {
-    final it = widget.item;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(width: 28, height: 1, color: _C.gold),
-            const SizedBox(width: 12),
-            Flexible(
-              child: Text(
-                (it['sub_category'] ?? '').toString().toUpperCase(),
-                style: TextStyle(
-                  color: _C.gold,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: _ls(context, 2.6),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        Text(
-          it['name'] ?? '',
-          style: _serif(
-            context,
-            size: wide ? 44 : 36,
-            weight: FontWeight.w500,
-            height: 1.08,
-            ls: 0.2,
-          ),
-        ),
-        const SizedBox(height: 22),
-        Container(width: 48, height: 1, color: _C.gold.withOpacity(0.5)),
-        const SizedBox(height: 22),
-        Text(
-          it['description'] ?? '',
-          style: TextStyle(
-            color: _C.cream.withOpacity(0.74),
-            fontSize: 14.5,
-            height: 1.9,
-            letterSpacing: _ls(context, 0.15),
-          ),
-        ),
-        const SizedBox(height: 30),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              widget.discoverLabel.toUpperCase(),
-              style: TextStyle(
-                color: _C.gold,
-                fontSize: 11.5,
-                fontWeight: FontWeight.w800,
-                letterSpacing: _ls(context, 2.8),
-              ),
-            ),
-            const SizedBox(width: 14),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 450),
-              curve: Curves.easeOutCubic,
-              width: _hover ? 64 : 34,
-              height: 1,
-              color: _C.gold,
-            ),
-            const SizedBox(width: 6),
-            const _DirectionalIcon(
-              Icons.arrow_forward_rounded,
-              size: 14,
-              color: _C.gold,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        child: LayoutBuilder(
-          builder: (context, c) {
-            final wide = c.maxWidth >= 820;
-            if (wide) {
-              final imageFirst = widget.number.isOdd;
-              final img = Expanded(flex: 6, child: _image(context, 1.12));
-              final txt = Expanded(
-                flex: 5,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 56),
-                  child: _text(context, wide: true),
-                ),
-              );
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 38),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: imageFirst ? [img, txt] : [txt, img],
-                ),
-              );
-            }
-            return Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 560),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 20, 0, 40),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _image(context, 0.86),
-                      const SizedBox(height: 28),
-                      _text(context, wide: false),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-//  BOUTONS
-// ─────────────────────────────────────────────────────────────
-class _HeartButton extends StatefulWidget {
-  final bool isFav;
-  final VoidCallback onTap;
-  const _HeartButton({required this.isFav, required this.onTap});
-
-  @override
-  State<_HeartButton> createState() => _HeartButtonState();
-}
-
-class _HeartButtonState extends State<_HeartButton> {
-  double _scale = 1;
-
-  void _pop() {
-    widget.onTap();
-    setState(() => _scale = 1.35);
-    Future.delayed(const Duration(milliseconds: 170), () {
-      if (mounted) setState(() => _scale = 1);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _pop,
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: AnimatedScale(
-            scale: _scale,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutBack,
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.black.withOpacity(0.38),
-                border: Border.all(color: _C.gold.withOpacity(0.55)),
-              ),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                transitionBuilder: (c, a) =>
-                    ScaleTransition(scale: a, child: c),
-                child: Icon(
-                  widget.isFav
-                      ? Icons.favorite_rounded
-                      : Icons.favorite_border_rounded,
-                  key: ValueKey(widget.isFav),
-                  size: 18,
-                  color: widget.isFav ? _C.gold : Colors.white,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GlassButton extends StatelessWidget {
-  final VoidCallback onTap;
-  final Widget child;
-  const _GlassButton({required this.onTap, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: ClipOval(
-          child: BackdropFilter(
-            filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.black.withOpacity(0.35),
-                border: Border.all(color: _C.gold.withOpacity(0.5)),
-              ),
-              child: Center(child: child),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ShineButton extends StatefulWidget {
-  final String label;
-  final VoidCallback onTap;
-  const _ShineButton({required this.label, required this.onTap});
-
-  @override
-  State<_ShineButton> createState() => _ShineButtonState();
-}
-
-class _ShineButtonState extends State<_ShineButton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c;
-  bool _down = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _c = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 3200))
-      ..repeat();
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTapDown: (_) => setState(() => _down = true),
-        onTapCancel: () => setState(() => _down = false),
-        onTapUp: (_) => setState(() => _down = false),
-        onTap: () {
-          HapticFeedback.mediumImpact();
-          widget.onTap();
-        },
-        child: AnimatedScale(
-          scale: _down ? 0.98 : 1,
-          duration: const Duration(milliseconds: 160),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(4),
-              gradient: const LinearGradient(
-                colors: [_C.goldDeep, _C.gold, _C.goldLight, _C.gold],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: _C.gold.withOpacity(0.28),
-                  blurRadius: 34,
-                  offset: const Offset(0, 14),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: LayoutBuilder(
-                        builder: (_, cons) => AnimatedBuilder(
-                          animation: _c,
-                          builder: (_, __) => Stack(
-                            children: [
-                              Positioned(
-                                left: -120 + (cons.maxWidth + 240) * _c.value,
-                                top: 0,
-                                bottom: 0,
-                                width: 90,
-                                child: Transform(
-                                  transform: Matrix4.skewX(-0.4),
-                                  child: DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          Colors.white.withOpacity(0),
-                                          Colors.white.withOpacity(0.42),
-                                          Colors.white.withOpacity(0),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Double filet intérieur
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(2),
-                            border: Border.all(
-                              color: _C.ink.withOpacity(0.28),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    constraints: const BoxConstraints(minHeight: 58),
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 22, vertical: 14),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.near_me_outlined,
-                            color: _C.ink, size: 18),
-                        const SizedBox(width: 12),
-                        Flexible(
-                          child: Text(
-                            widget.label.toUpperCase(),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: _C.ink,
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: _ls(context, 2.4),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-//  PAGE DÉTAIL
-// ─────────────────────────────────────────────────────────────
-class _PlaceDetailPage extends StatefulWidget {
-  final Map<String, dynamic> item;
-  final Color color;
-  final IconData icon;
-  final String mapsLabel;
-  final bool isFav;
-  final VoidCallback onFav;
-  final VoidCallback onMaps;
-  final Map<String, String> labels;
-  final Map<String, dynamic>? extra;
-  final List<Map<String, dynamic>> related;
-  final ValueChanged<Map<String, dynamic>> onOpenRelated;
-
-  const _PlaceDetailPage({
-    required this.item,
-    required this.color,
-    required this.icon,
-    required this.mapsLabel,
-    required this.isFav,
-    required this.onFav,
-    required this.onMaps,
-    required this.labels,
-    required this.extra,
-    required this.related,
-    required this.onOpenRelated,
-  });
-
-  @override
-  State<_PlaceDetailPage> createState() => _PlaceDetailPageState();
-}
-
-class _PlaceDetailPageState extends State<_PlaceDetailPage> {
-  late bool _fav = widget.isFav;
-
-  @override
-  Widget build(BuildContext context) {
-    final it = widget.item;
-    final id = it['id'] as String;
-    final size = MediaQuery.of(context).size;
-    final heroH = (size.height * 0.68).clamp(440.0, 700.0).toDouble();
-    final titleSize = (size.width * 0.11).clamp(38.0, 68.0).toDouble();
-
-    return Scaffold(
-      backgroundColor: _C.bg,
-      extendBody: true,
-      body: Stack(
-        children: [
-          ScrollConfiguration(
-            behavior: WebScrollBehavior(),
-            child: CustomScrollView(
-              physics: const ClampingScrollPhysics(),
-              slivers: [
-                SliverAppBar(
-                  pinned: true,
-                  expandedHeight: heroH,
-                  backgroundColor: _C.bg,
-                  surfaceTintColor: Colors.transparent,
-                  elevation: 0,
-                  automaticallyImplyLeading: false,
-                  leadingWidth: 70,
-                  leading: Padding(
-                    padding: const EdgeInsetsDirectional.only(start: 18),
-                    child: Center(
-                      child: _GlassButton(
-                        onTap: () => Navigator.of(context).maybePop(),
-                        child: const _DirectionalIcon(
-                          Icons.arrow_back_rounded,
-                          size: 20,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                  actions: [
-                    Padding(
-                      padding: const EdgeInsetsDirectional.only(end: 14),
-                      child: Center(
-                        child: _HeartButton(
-                          isFav: _fav,
-                          onTap: () {
-                            widget.onFav();
-                            setState(() => _fav = !_fav);
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                  flexibleSpace: FlexibleSpaceBar(
-                    collapseMode: CollapseMode.parallax,
-                    background: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Hero(
-                          tag: 'img_$id',
-                          child: _PlaceImage(it['photo_url'] ?? ''),
-                        ),
-                        const DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Color(0x80000000),
-                                Color(0x00000000),
-                                Color(0x73000000),
-                                Color(0xFF0C0A09),
-                              ],
-                              stops: [0, 0.25, 0.65, 1],
-                            ),
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.bottomCenter,
-                          child: Padding(
-                            padding:
-                            const EdgeInsets.fromLTRB(28, 0, 28, 44),
-                            child: _Reveal(
-                              delay: const Duration(milliseconds: 250),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    (it['sub_category'] ?? '')
-                                        .toString()
-                                        .toUpperCase(),
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: _C.gold,
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: _ls(context, 4),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    it['name'] ?? '',
-                                    textAlign: TextAlign.center,
-                                    style: _serif(
-                                      context,
-                                      size: titleSize,
-                                      weight: FontWeight.w500,
-                                      color: Colors.white,
-                                      height: 1.05,
-                                      ls: 1,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: _DetailBody(
-                    item: it,
-                    labels: widget.labels,
-                    extra: widget.extra,
-                    related: widget.related,
-                    onOpenRelated: widget.onOpenRelated,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Bouton Google Maps flottant
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: IgnorePointer(
-              ignoring: false,
-              child: Container(
-                padding: EdgeInsets.fromLTRB(
-                    24, 40, 24, 22 + MediaQuery.of(context).padding.bottom),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0x000C0A09), Color(0xF20C0A09)],
-                  ),
-                ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 460),
-                    child: _ShineButton(
-                      label: widget.mapsLabel,
-                      onTap: widget.onMaps,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-//  CORPS DE LA PAGE DÉTAIL (sections enrichies)
-// ─────────────────────────────────────────────────────────────
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 28, height: 1, color: _C.gold),
-        const SizedBox(width: 12),
-        Flexible(
-          child: Text(
-            text.toUpperCase(),
-            style: TextStyle(
-              color: _C.gold,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: _ls(context, 2.6),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-  const _InfoRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: _C.gold.withOpacity(0.2)),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 4,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                label.toUpperCase(),
-                style: TextStyle(
-                  color: _C.cream.withOpacity(0.55),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: _ls(context, 2.2),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 6,
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: _serif(
-                context,
-                size: 19,
-                weight: FontWeight.w500,
-                height: 1.35,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Highlight extends StatelessWidget {
-  final int index;
-  final String title;
-  final String text;
-  const _Highlight(
-      {required this.index, required this.title, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    const numerals = ['I', 'II', 'III', 'IV', 'V', 'VI'];
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 34),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 54,
-            child: Text(
-              numerals[index % numerals.length],
-              style: _serif(
-                context,
-                size: 30,
-                weight: FontWeight.w400,
-                color: _C.gold,
-                height: 1.1,
-                style: FontStyle.italic,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: _serif(
-                    context,
-                    size: 25,
-                    weight: FontWeight.w500,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  text,
-                  style: TextStyle(
-                    color: _C.cream.withOpacity(0.72),
-                    fontSize: 14.5,
-                    height: 1.85,
-                    letterSpacing: _ls(context, 0.15),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DidYouKnow extends StatelessWidget {
-  final String label;
-  final String text;
-  const _DidYouKnow({required this.label, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(28, 14, 28, 38),
-      decoration: BoxDecoration(
-        color: _C.surface,
-        border: Border.symmetric(
-          horizontal: BorderSide(color: _C.gold.withOpacity(0.35)),
-        ),
-      ),
-      child: Column(
-        children: [
-          Text(
-            '“',
-            style: _serif(
-              context,
-              size: 84,
-              weight: FontWeight.w500,
-              color: _C.gold,
-              height: 1.0,
-            ),
-          ),
-          Text(
-            label.toUpperCase(),
-            style: TextStyle(
-              color: _C.gold,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: _ls(context, 3.4),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            text,
-            textAlign: TextAlign.center,
-            style: _serif(
-              context,
-              size: 22,
-              weight: FontWeight.w400,
-              color: _C.cream.withOpacity(0.92),
-              height: 1.7,
-              style: FontStyle.italic,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TipBox extends StatelessWidget {
-  final String label;
-  final String text;
-  const _TipBox({required this.label, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(26),
-      decoration: BoxDecoration(
-        color: _C.gold.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(3),
-        border: Border.all(color: _C.gold.withOpacity(0.4)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 1),
-            child: Icon(Icons.lightbulb_outline_rounded,
-                color: _C.gold, size: 22),
-          ),
-          const SizedBox(width: 18),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label.toUpperCase(),
-                  style: TextStyle(
-                    color: _C.gold,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: _ls(context, 2.6),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  text,
-                  style: TextStyle(
-                    color: _C.cream.withOpacity(0.84),
-                    fontSize: 14.5,
-                    height: 1.8,
-                    letterSpacing: _ls(context, 0.15),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RelatedCard extends StatelessWidget {
-  final Map<String, dynamic> item;
-  final VoidCallback onTap;
-  const _RelatedCard({required this.item, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: SizedBox(
-          width: 220,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                _PlaceImage(item['photo_url'] ?? ''),
-                const DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0x00000000),
-                        Color(0x33000000),
-                        Color(0xE6000000),
-                      ],
-                      stops: [0.3, 0.55, 1],
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: _C.gold.withOpacity(0.35)),
-                    ),
-                  ),
-                ),
-                Positioned.directional(
-                  textDirection: Directionality.of(context),
-                  start: 22,
-                  end: 22,
-                  bottom: 22,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        (item['sub_category'] ?? '').toString().toUpperCase(),
-                        style: TextStyle(
-                          color: _C.gold,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: _ls(context, 2),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        item['name'] ?? '',
-                        style: _serif(
-                          context,
-                          size: 23,
-                          weight: FontWeight.w500,
-                          color: Colors.white,
-                          height: 1.1,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DetailBody extends StatelessWidget {
-  final Map<String, dynamic> item;
-  final Map<String, String> labels;
-  final Map<String, dynamic>? extra;
-  final List<Map<String, dynamic>> related;
-  final ValueChanged<Map<String, dynamic>> onOpenRelated;
-
-  const _DetailBody({
-    required this.item,
-    required this.labels,
-    required this.extra,
-    required this.related,
-    required this.onOpenRelated,
-  });
-
-  String _l(String k) => labels[k] ?? k;
-
-  @override
-  Widget build(BuildContext context) {
-    final List hl = (extra?['hl'] as List?) ?? const [];
-    final String? fact = extra?['fact'] as String?;
-    final String? tip = extra?['tip'] as String?;
-    final String? duration = extra?['duration'] as String?;
-    final String? best = extra?['best'] as String?;
-    final width = MediaQuery.of(context).size.width;
-
-    return Column(
-      children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(30, 30, 30, 0),
-              child: _Reveal(
-                delay: const Duration(milliseconds: 400),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Center(child: _Ornament(width: 150)),
-                    const SizedBox(height: 44),
-                    _SectionLabel(_l('about')),
-                    const SizedBox(height: 22),
-                    Text(
-                      item['description'] ?? '',
-                      style: _serif(
-                        context,
-                        size: 19,
-                        weight: FontWeight.w400,
-                        color: _C.cream.withOpacity(0.86),
-                        height: 1.95,
-                        ls: 0.2,
-                      ),
-                    ),
-                    if (duration != null || best != null) ...[
-                      const SizedBox(height: 64),
-                      _SectionLabel(_l('overview')),
-                      const SizedBox(height: 14),
-                      if (duration != null)
-                        _InfoRow(label: _l('duration'), value: duration),
-                      if (best != null)
-                        _InfoRow(label: _l('bestTime'), value: best),
-                      _InfoRow(
-                        label: _l('category'),
-                        value: (item['sub_category'] ?? '').toString(),
-                      ),
-                    ],
-                    if (hl.isNotEmpty) ...[
-                      const SizedBox(height: 70),
-                      _SectionLabel(_l('highlights')),
-                      const SizedBox(height: 34),
-                      for (int i = 0; i < hl.length; i++)
-                        _Highlight(
-                          index: i,
-                          title: (hl[i] as Map)['t'] as String,
-                          text: (hl[i] as Map)['d'] as String,
-                        ),
-                    ],
-                    if (fact != null) ...[
-                      const SizedBox(height: 40),
-                      _DidYouKnow(label: _l('didYouKnow'), text: fact),
-                    ],
-                    if (tip != null) ...[
-                      const SizedBox(height: 40),
-                      _TipBox(label: _l('tip'), text: tip),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        if (related.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 100),
-            child: Column(
-              children: [
-                const _Ornament(width: 130),
-                const SizedBox(height: 26),
-                Text(
-                  _l('seeAlso'),
-                  textAlign: TextAlign.center,
-                  style: _serif(context,
-                      size: 38, weight: FontWeight.w500, ls: 1),
-                ),
-                const SizedBox(height: 34),
-                SizedBox(
-                  height: 300,
-                  child: Builder(builder: (context) {
-                    final total = related.length * 220.0 +
-                        (related.length - 1) * 16.0;
-                    final side = ((width - total) / 2)
-                        .clamp(24.0, double.infinity)
-                        .toDouble();
-                    return ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: EdgeInsets.symmetric(horizontal: side),
-                      itemCount: related.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 16),
-                      itemBuilder: (_, i) => _RelatedCard(
-                        item: related[i],
-                        onTap: () => onOpenRelated(related[i]),
-                      ),
-                    );
-                  }),
-                ),
-              ],
-            ),
-          ),
-        const SizedBox(height: 200),
-      ],
-    );
-  }
-}
-
-
-// ─────────────────────────────────────────────────────────────
-//  CONTENU ENRICHI DE LA PAGE DÉTAIL (par lieu et par langue)
-// ─────────────────────────────────────────────────────────────
 const Map<String, Map<String, dynamic>> _placeExtras = {
   'citadelle_qaitbay': {
     'related': ['corniche_pont_stanley', 'bibliotheque_alexandrina', 'colonne_pompee'],
