@@ -157,43 +157,131 @@ Pour générer la version Web :
 
 ## ✦ Ouvrir ce projet Flutter dans Android Studio
 
-### 1. Cloner le dépôt et entrer dans le dossier
+Ce guide explique comment récupérer, configurer et lancer **Égypte** avec Android Studio sous Windows, macOS (pour iOS) et Linux.
+
+### 1. Installer les outils nécessaires
+
+Installez les outils suivants avant d'ouvrir le projet :
+
+- **Git** : https://git-scm.com/downloads
+- **Flutter SDK** : https://docs.flutter.dev/get-started/install
+- **Android Studio** : https://developer.android.com/studio
+
+Dans Android Studio, ouvrez **Settings / Preferences → Plugins → Marketplace**, recherchez **Flutter**, puis installez le plugin Flutter (le plugin Dart sera également proposé). Redémarrez Android Studio.
+
+Dans **SDK Manager**, installez un Android SDK récent ainsi que les outils de plateforme et de compilation proposés. Dans **Device Manager**, créez un émulateur Android ou préparez un téléphone avec le débogage USB activé.
+
+### 2. Récupérer le projet
+
+Ouvrez un terminal (PowerShell sous Windows, Terminal sous macOS ou Linux), puis exécutez :
 
 ```bash
 git clone https://github.com/Coco921609/Egypte.git
 cd Egypte
 ```
 
-### 2. Vérifier Flutter et installer les dépendances
+Vérifiez que vous êtes dans le dossier **Egypte**, celui qui contient le fichier `pubspec.yaml`.
 
-Exécutez ces commandes à la racine du projet, dans le dossier qui contient `pubspec.yaml` :
+### 3. Configurer Windows
+
+1. Téléchargez le SDK Flutter pour Windows et décompressez-le dans un emplacement simple, par exemple `C:\src\flutter`.
+2. Ajoutez `C:\src\flutter\bin` à la variable d’environnement **Path** de Windows.
+3. Fermez puis rouvrez PowerShell et vérifiez l’installation :
+
+```powershell
+flutter --version
+flutter doctor
+```
+
+4. Dans Android Studio, ouvrez **SDK Manager** et installez le SDK Android et les outils nécessaires.
+5. Acceptez les licences Android :
+
+```powershell
+flutter doctor --android-licenses
+flutter doctor
+```
+
+6. Pour exécuter l’application Windows elle-même (en plus d'Android), installez **Visual Studio** avec la charge de travail **Desktop development with C++**. Android Studio seul ne fournit pas le compilateur Windows requis.
+
+### 4. Configurer macOS et iOS
+
+1. Installez Flutter pour macOS et ajoutez le dossier `flutter/bin` à votre PATH selon la documentation Flutter.
+2. Installez Android Studio si vous souhaitez également lancer l’application sur Android.
+3. Pour compiler ou lancer sur iPhone/iOS, installez **Xcode** depuis le Mac App Store.
+4. Ouvrez Terminal et configurez les outils en ligne de commande :
 
 ```bash
+xcode-select --install
+sudo xcodebuild -runFirstLaunch
 flutter doctor
+```
+
+5. Ouvrez Xcode une première fois et acceptez ses conditions si cela est demandé.
+6. Pour tester, démarrez un simulateur depuis Xcode (**Xcode → Open Developer Tool → Simulator**) ou connectez un iPhone autorisé.
+
+**Important :** la compilation, la signature et l’exécution iOS nécessitent un Mac avec Xcode. Il n’est pas possible de construire une application iOS nativement depuis Windows ou Linux.
+
+### 5. Configurer Linux
+
+1. Installez Git et les dépendances système requises par Flutter pour votre distribution (consultez la documentation Flutter Linux).
+2. Téléchargez et installez le SDK Flutter pour Linux, puis ajoutez `flutter/bin` à votre PATH.
+3. Installez Android Studio et les outils Android SDK.
+4. Dans un terminal, vérifiez la configuration et acceptez les licences :
+
+```bash
+flutter --version
+flutter doctor
+flutter doctor --android-licenses
+```
+
+5. Pour exécuter une version Linux desktop, installez également les dépendances de compilation Linux indiquées dans la documentation Flutter.
+
+### 6. Ouvrir Égypte dans Android Studio
+
+1. Lancez **Android Studio**.
+2. Cliquez sur **Open**.
+3. Sélectionnez le dossier cloné **Egypte** (ne sélectionnez pas uniquement le dossier `android`).
+4. Attendez l’indexation du projet.
+5. Ouvrez le terminal intégré d’Android Studio et exécutez :
+
+```bash
 flutter pub get
 ```
 
-### 3. Ouvrir le projet dans Android Studio
+Si Android Studio demande de configurer le chemin du SDK Flutter, indiquez le dossier dans lequel vous avez installé Flutter.
 
-**Windows (PowerShell), macOS ou Linux** — si la commande `studio` est disponible dans le PATH :
+### 7. Lancer l’application
 
-```bash
-studio .
-```
-
-Sur macOS, vous pouvez aussi utiliser :
-
-```bash
-open -a "Android Studio" .
-```
-
-Si `studio` n’est pas reconnu, ouvrez Android Studio manuellement, cliquez sur **Open**, puis sélectionnez le dossier `Egypte`.
-
-### 4. Démarrer l’application
-
-Démarrez un émulateur Android ou connectez un téléphone avec le débogage USB activé, puis lancez :
+1. Démarrez un émulateur depuis **Device Manager**, ou connectez un appareil physique.
+2. Vérifiez que Flutter le détecte :
 
 ```bash
 flutter devices
+```
+
+3. Dans Android Studio, choisissez l’appareil dans la liste en haut, puis cliquez sur **Run ▶**. Vous pouvez aussi lancer depuis le terminal :
+
+```bash
 flutter run
 ```
+
+Pour lancer la version Web dans Chrome :
+
+```bash
+flutter run -d chrome
+```
+
+Pour générer les fichiers Web destinés au site GitHub Pages de ce dépôt :
+
+```bash
+flutter build web --base-href "/Egypte/"
+```
+
+### 8. En cas de problème
+
+- Exécutez `flutter doctor -v` pour obtenir un diagnostic détaillé.
+- Vérifiez que le dossier Flutter est bien dans le PATH et que le chemin du SDK est configuré dans Android Studio.
+- Après avoir récupéré le projet ou modifié ses dépendances, relancez `flutter pub get`.
+- Si aucun appareil n’apparaît, démarrez l’émulateur ou vérifiez la connexion USB et le débogage USB du téléphone.
+
+**Documentation officielle :** [Installer Flutter](https://docs.flutter.dev/get-started/install) · [Configurer Android](https://docs.flutter.dev/platform-integration/android/setup) · [Configurer iOS](https://docs.flutter.dev/platform-integration/ios/setup) · [Configurer Linux](https://docs.flutter.dev/platform-integration/linux/setup) · [Configurer Windows](https://docs.flutter.dev/platform-integration/windows/setup)
