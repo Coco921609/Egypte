@@ -153,3 +153,47 @@ Pour générer la version Web :
   <strong>ÉGYPTE</strong><br>
   <em>Un voyage au cœur de l’histoire, des paysages et de la culture égyptienne.</em>
 </p>
+
+
+## ✦ Ouvrir ce projet Flutter dans Android Studio
+
+### 1. Cloner le dépôt et entrer dans le dossier
+
+```bash
+git clone https://github.com/Coco921609/Egypte.git
+cd Egypte
+```
+
+### 2. Vérifier Flutter et installer les dépendances
+
+Exécutez ces commandes à la racine du projet, dans le dossier qui contient `pubspec.yaml` :
+
+```bash
+flutter doctor
+flutter pub get
+```
+
+### 3. Ouvrir le projet dans Android Studio
+
+**Windows (PowerShell), macOS ou Linux** — si la commande `studio` est disponible dans le PATH :
+
+```bash
+studio .
+```
+
+Sur macOS, vous pouvez aussi utiliser :
+
+```bash
+open -a "Android Studio" .
+```
+
+Si `studio` n’est pas reconnu, ouvrez Android Studio manuellement, cliquez sur **Open**, puis sélectionnez le dossier `Egypte`.
+
+### 4. Démarrer l’application
+
+Démarrez un émulateur Android ou connectez un téléphone avec le débogage USB activé, puis lancez :
+
+```bash
+flutter devices
+flutter run
+```
